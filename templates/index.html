@@ -22,9 +22,9 @@
                         })
                         .modal("show");
                 }
-                else 
+                else {
                     $("#logout_button").addClass("ui button red");
-                    $("#logout_button").text("退出登录");
+                    $("#logout_button").text("退出登录");}
             });
             var day=0;
             $.ajax({
@@ -86,7 +86,7 @@
         <div class="ui message red">
             欢迎通过社团自研ScoreSYS系统参与摄影比赛线上公开评审  Designed by 闫子寒 燕睿哲<br>
             为保证评审质量 公开评审每天限评30张 注册评审每天限评50张 我们将对评审结果加权后直接产生照片成绩<br>
-            照片顺序打乱且匿名 请客观对待每一张照片 它们都是同学们的心血<br>
+            照片乱序放出且匿名 请客观对待每一张照片 它们都是同学们的心血<br>
             您可以给单张照片打分 最低分1分 最高分5分<br>
             YourLife按钮适用于YourLife榜单 如果您觉得照片富有生活气息 请按下YourLife 帮助照片冲上榜单<br>
             如果您是我们的注册评审 请在下方输入我们发放给您的密码<br>
@@ -109,13 +109,14 @@
                 <p class="mb-6" id="upload_warning" style="color: red;"></p>
             </div>
             <div class="flex justify-center mt-2">
-                <button
-                    class="ui button red w-1/2 md:w-1/5 text-xl"
-                    id="login_button"
-                >
+                <button class="ui button red w-1/2 md:w-1/5 text-xl" id="login_button">
                     登录
                 </button>
-            </div>
+            <button class="ui button blue w-1/2 md:w-1/5 text-xl ml-2" id="wescore_button">
+                    WeScore
+                </button>
+                </div>
+
         </div>
     </div>
 </div>
@@ -191,6 +192,22 @@
                 }
             });
     });
+    // WeScore按钮 for 大众评审
+    $("#wescore_button")[0].addEventListener("click", () => {
+        console.log("WeScore clicked");
+        // 预留Session关键词 默认public
+        $.cookie("session", "public");
+        $("#login_modal")
+            .modal({
+                blurring: true,
+                observeChanges: true,
+            })
+            .modal("hide");
+        $("#logout_button").addClass("ui button red");
+        $("#logout_button").text("退出登录");
+        location.reload();
+    });
+
     $("#begin_button")[0].addEventListener("click", () => {
         $("#begin_button").addClass("loading");
         window.location.href = "/evaluation";
