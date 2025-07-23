@@ -11,10 +11,12 @@ from flask import Flask, request,render_template,send_file, jsonify
 app = Flask(__name__)
 database = "database.db"
 
+begin_day=(2025,7,26)
+
 session = []
 session_find = {}
 
-
+#从SQL取回用户信息
 def load_users():
     conn = sqlite3.connect(database)
     cursor = conn.cursor()
@@ -23,6 +25,7 @@ def load_users():
     conn.close()
     return users
 
+#对应用户
 def update_session():
     session.clear()
     session_find.clear()
@@ -31,6 +34,7 @@ def update_session():
         session.append(password)
         session_find[password] = username
 
+
 def get_uid_from_session():
     try:
         session_id = request.headers["X-Session-ID"]
@@ -38,9 +42,37 @@ def get_uid_from_session():
         return None
     return session_find.get(session_id)
 
+def get_day():
+    begin_date = datetime(*begin_day)
+    return (datetime.now() - begin_date).days+1
 
+#用户鉴权
+@app.route("/api/v1/session/verify", methods=["GET"])
+def session_verify():
+    update_session()
+    try:
+        session_id = request.headers["X-Session-ID"]
+    except KeyError:
+        return {"code": 400, "success": False, "data": {"message": "Invalid request"}}
+    if session_id in session:
+        return {
+            "code": 200,
+            "success": True,
+        }
+    else:
+        return {
+            "code": 401,
+            "success": False,
+            "data": {"message": "Invalid session ID"},
+        }
+    
+#获取时间
+@app.route("/api/v1/day", methods=["GET"])
+def day():
+    return {"code": 200, "success": True, "data": get_day()}
+    
 #投票接口
-@app.route("/api/v1/vote/vote", methods=["POST"])
+@app.route("/api/v1/vote/query", methods=["POST"])
 def vote_vote():
     update_session()
     uid = get_uid_from_session()
