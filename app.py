@@ -13,34 +13,37 @@ database = "database.db"
 
 begin_day=(2025,7,26)
 
-session = []
-session_find = {}
+# 初始化会话和用户信息
+certified_user_token = []
+public_user_token = []
+
 
 #从SQL取回用户信息
-def load_users():
+def load_certified_users():
     conn = sqlite3.connect(database)
     cursor = conn.cursor()
-    cursor.execute("SELECT uid,password FROM user")
+    cursor.execute("SELECT uid, password, token FROM certified_users")
+    users = cursor.fetchall()
+    conn.close()
+    return users
+
+def load_public_users():
+    conn = sqlite3.connect(database)
+    cursor = conn.cursor()
+    cursor.execute("SELECT uid, token FROM public_users")
     users = cursor.fetchall()
     conn.close()
     return users
 
 #对应用户
 def update_session():
-    session.clear()
-    session_find.clear()
-    users = load_users()
-    for username, password in users:
-        session.append(password)
-        session_find[password] = username
+    global certified_user_token, public_user_token
+    certified_users = load_certified_users()
+    public_users = load_public_users()
 
+    certified_user_token = {user[0]: user[2] for user in certified_users}
+    public_user_token = {user[0]: user[1] for user in public_users}
 
-def get_uid_from_session():
-    try:
-        session_id = request.headers["X-Session-ID"]
-    except KeyError:
-        return None
-    return session_find.get(session_id)
 
 def get_day():
     begin_date = datetime(*begin_day)
@@ -51,10 +54,12 @@ def get_day():
 def session_verify():
     update_session()
     try:
-        session_id = request.headers["X-Session-ID"]
+        token = request.headers["X-Session-ID"]
     except KeyError:
         return {"code": 400, "success": False, "data": {"message": "Invalid request"}}
-    if session_id in session:
+    print (f"Received token: {token}")
+    print (f"Certified user tokens: {public_user_token}")
+    if token in certified_user_token.values() or token in public_user_token.values():
         return {
             "code": 200,
             "success": True,
@@ -66,6 +71,27 @@ def session_verify():
             "data": {"message": "Invalid session ID"},
         }
     
+#大众登录
+@app.route("/api/v1/session/public/login", methods=["GET"])
+def public_login():
+    # 生成一个新的 token
+    token = secrets.token_hex(16)
+
+    conn = sqlite3.connect(database)
+    cursor = conn.cursor()
+
+
+    # 插入新用户
+    uid = str(uuid.uuid4())
+    cursor.execute("INSERT INTO public_users (uid, token) VALUES (?, ?)", (uid, token))
+
+    conn.commit()
+    conn.close()
+
+    update_session()
+    
+    return jsonify({"code": 200, "success": True, "data": {"token": token}})
+
 #获取时间
 @app.route("/api/v1/day", methods=["GET"])
 def day():

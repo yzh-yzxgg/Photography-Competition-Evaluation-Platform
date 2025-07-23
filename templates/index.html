@@ -4,14 +4,14 @@
     {% include 'head.html' %}
     <title>ScoreSYS-摄影比赛评审平台</title>    
     <script>
-        session_id=$.cookie('session');
+        token=$.cookie('token');
         $.ajax({
                 url: "/api/v1/session/verify",
                 method: "GET",
                 timeout: 0,
                 headers: {
                     "Content-Type": "application/json",
-                    "X-Session-ID": session_id,
+                    "X-Session-ID": token,
                 },
             }).done((response) => {
                 if (response.success==false){
@@ -27,20 +27,9 @@
                     $("#logout_button").text("退出登录");}
             });
             var day=0;
-            $.ajax({
-                url: "/api/v1/day",
-                method: "GET", 
-                timeout: 0,
-                headers: {
-                    "Content-Type": "application/json",
-                    "X-Session-ID": session_id,
-                },
-            }).done((response) => {
-                day=response.data;
-                console.log(day);
-            });
+            
         var logout = function(){
-            $.removeCookie('session');
+            $.removeCookie('token');
             window.location.href = "/";
         }
     </script>
@@ -61,7 +50,6 @@
     <div class="flex flex-col flex-grow justify-center items-center mb-10">
         <div class="flex flex-col items-center w-full mb-5" style="width: 90%;">
             <h1 class="text-3xl font-bold">ScoreSYS—摄影协会比赛评审系统</h1>
-            <h5 class="text-lg" style="color: black;">--------------------------------------------------------------------------------</h5>
             <h5 class="text-lg" style="color: red;">我们的系统代表公平 愿你们在公平之上构建美学</h5>
         </div>
         <div class="flex flex-col flex-grow items-center mb-4" style="width: 80%;">
@@ -134,7 +122,7 @@
         timeout: 0,
         headers: {
             "Content-Type": "application/json",
-            "X-Session-ID": session_id,
+            "X-Session-ID": token,
         },
         }).done((response) => {
             console.log(response);
@@ -179,7 +167,7 @@
             }).done((response) => {
                 console.log(response);
                 if (response.success){
-                    $.cookie("session", password);
+                    $.cookie("token", password);
                     $("#login_modal")
                         .modal({
                             blurring: true,
@@ -196,16 +184,32 @@
     $("#wescore_button")[0].addEventListener("click", () => {
         console.log("WeScore clicked");
         // 预留Session关键词 默认public
-        $.cookie("session", "public");
-        $("#login_modal")
-            .modal({
-                blurring: true,
-                observeChanges: true,
-            })
-            .modal("hide");
-        $("#logout_button").addClass("ui button red");
-        $("#logout_button").text("退出登录");
-        location.reload();
+        password = "public";
+        $.ajax({
+                url: "/api/v1/session/public/login",
+                method: "GET",
+                timeout: 0,
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-Session-ID": $.cookie('session') || "public",
+                },
+            }).done((response) => {
+                console.log(response);
+                if (response.success){
+                    password = response.data.token;
+                    console.log("WeScore session token:", password);
+                    $.cookie("token", password);
+                    $("#login_modal")
+                        .modal({
+                            blurring: true,
+                            observeChanges: true,
+                        })
+                        .modal("hide");
+                    $("#logout_button").addClass("ui button red");
+                    $("#logout_button").text("退出登录");
+                    location.reload();
+                }
+            });
     });
 
     $("#begin_button")[0].addEventListener("click", () => {
