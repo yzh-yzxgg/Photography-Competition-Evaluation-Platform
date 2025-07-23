@@ -44,11 +44,19 @@ public_user_data = {
     'token': []      # 令牌
 }
 
+# 创建DataFrame来存储记录每张照片的投票与否（cid与token）
+vote_data = {
+    'cid': [],        # 图片编号
+    'token_list': []  # 令牌列表
+}
+
 # 为每个图片文件生成信息
 for idx, image_file in enumerate(image_files, start=1):
     cname, extension = os.path.splitext(image_file)  # 拆分文件名和扩展名
     data['cid'].append(idx)
     score_data['cid'].append(idx)
+    vote_data['cid'].append(idx)
+    vote_data['token_list'].append('')  # 初始化投票列表
 
     data['cname'].append(cname)
     score_data['cname'].append(cname)
@@ -68,6 +76,7 @@ df_uploads = pd.DataFrame(data)
 df_scores = pd.DataFrame(score_data)
 df_certified_users = pd.DataFrame(certified_user_data)
 df_public_users = pd.DataFrame(public_user_data)
+df_vote_data = pd.DataFrame(vote_data)
 
 # 连接数据库并写入表
 conn = sqlite3.connect('database.db')  # 连接到数据库（如果不存在则会创建）
@@ -76,6 +85,7 @@ df_uploads.to_sql('uploads', conn, if_exists='replace', index=False)  # 写入up
 df_scores.to_sql('photo_scores_certified_users', conn, if_exists='replace', index=False)  # 写入photo_scores_certified_users表
 df_scores.to_sql('photo_scores_public_users', conn, if_exists='replace', index=False)  # 写入photo_votes_public_users表
 df_certified_users.to_sql('certified_users', conn, if_exists='replace', index=False)  # 写入certified_users表
-df_public_users.to_sql('public_users', conn, if_exists='replace', index=False)
+df_public_users.to_sql('public_users', conn, if_exists='replace', index=False)  # 写入public_users表
+df_vote_data.to_sql('user_votes', conn, if_exists='replace', index=False)  # 写入user_votes表
 
 conn.close()  # 关闭数据库连接
