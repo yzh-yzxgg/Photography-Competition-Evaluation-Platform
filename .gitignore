@@ -1,0 +1,31 @@
+# Python 缓存
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# VSCode 设置（如不共享配置）
+.vscode/
+
+# 虚拟环境（若有）
+venv/
+env/
+
+# 环境变量文件
+.env
+*.env
+
+# macOS 系统文件
+.DS_Store
+
+# Node.js 相关（如果你用了 Tailwind）
+node_modules/
+package-lock.json
+yarn.lock
+
+# 打包或构建文件夹（如果有）
+dist/
+build/
+
+# 上传文件（如果不是测试用例）
+uploads/
