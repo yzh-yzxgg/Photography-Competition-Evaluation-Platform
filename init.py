@@ -1,5 +1,7 @@
 import os
 import pandas as pd
+import random
+import hashlib
 import sqlite3  # 用于数据库操作
 
 # 定义文件夹路径
@@ -27,6 +29,21 @@ score_data = {
     'vote_count': []   # 投票次数，初始0
 }
 
+# 定义用户数量
+certified_usersum = 10
+
+# 创建DataFrame来存储用户信息（uid与密码）
+certified_user_data = {
+    'uid': [],        # 用户ID
+    'password': [] ,   # 密码
+    'token': []        # 令牌
+}
+
+public_user_data = {
+    'uid': [],        # 用户ID
+    'token': []      # 令牌
+}
+
 # 为每个图片文件生成信息
 for idx, image_file in enumerate(image_files, start=1):
     cname, extension = os.path.splitext(image_file)  # 拆分文件名和扩展名
@@ -40,14 +57,25 @@ for idx, image_file in enumerate(image_files, start=1):
     score_data['total_score'].append(0)
     score_data['vote_count'].append(0)
 
+# 为认证用户生成信息
+for i in range(certified_usersum):
+    certified_user_data['uid'].append(i + 1)  # 用户ID从1开始
+    certified_user_data['password'].append(str(random.randint(1000, 9999)))  # 随机四位数字密码
+    certified_user_data['token'].append(hashlib.sha256(str(random.getrandbits(256)).encode()).hexdigest()) # 生成随机令牌
+
 # 创建DataFrame
 df_uploads = pd.DataFrame(data)
 df_scores = pd.DataFrame(score_data)
+df_certified_users = pd.DataFrame(certified_user_data)
+df_public_users = pd.DataFrame(public_user_data)
 
 # 连接数据库并写入表
 conn = sqlite3.connect('database.db')  # 连接到数据库（如果不存在则会创建）
 
 df_uploads.to_sql('uploads', conn, if_exists='replace', index=False)  # 写入uploads表
-df_scores.to_sql('photo_scores', conn, if_exists='replace', index=False)  # 写入photo_scores表
+df_scores.to_sql('photo_scores_certified_users', conn, if_exists='replace', index=False)  # 写入photo_scores_certified_users表
+df_scores.to_sql('photo_scores_public_users', conn, if_exists='replace', index=False)  # 写入photo_votes_public_users表
+df_certified_users.to_sql('certified_users', conn, if_exists='replace', index=False)  # 写入certified_users表
+df_public_users.to_sql('public_users', conn, if_exists='replace', index=False)
 
 conn.close()  # 关闭数据库连接
