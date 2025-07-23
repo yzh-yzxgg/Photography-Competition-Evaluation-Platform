@@ -4,6 +4,10 @@ __pycache__/
 *.pyo
 *.pyd
 
+# 数据库文件（如无需版本控制）
+*.sqlite3
+*.db
+
 # VSCode 设置（如不共享配置）
 .vscode/
 
