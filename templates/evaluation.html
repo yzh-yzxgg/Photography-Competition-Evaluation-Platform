@@ -7,24 +7,6 @@
         var session_id = $.cookie('session');
         var cid = parseInt("{{cid}}");
 
-        // Session验证
-        $.ajax({
-            url: "/api/v1/session/verify",
-            method: "GET",
-            headers: {
-                "Content-Type": "application/json",
-                "X-Session-ID": session_id,
-            },
-        }).done((response) => {
-            if (!response.success){
-                $("#login_modal")
-                    .modal({ blurring: true, observeChanges: true })
-                    .modal("show");
-            } else {
-                $("#logout_button").addClass("ui small button red");
-                $("#logout_button").text("退出登录");
-            }
-        });
 
         var day = 0;
         $.ajax({
@@ -108,31 +90,6 @@
             <img id="image" class="ui bordered fluid image" src="">
         </div>
 
-        <!-- 登录模态框 -->
-        <div class="ui modal tiny" id="login_modal">
-        <div class="header">
-        <h3>输入登录密码</h3>
-        </div>
-        <div class="content">
-            <div class="field">
-                <div class="ui form">
-                    <div class="field">
-                        <label>登录密码</label>
-                        <input id="login_password" placeholder="登录密码" type="text"/>
-                    </div>
-                </div>
-                <div class="flex mt-2">
-                    <p class="mb-6" id="upload_warning" style="color: red;"></p>
-                </div>
-                <div class="flex justify-center mt-2">
-                    <button class="ui button red w-1/2 md:w-1/5 text-xl" id="login_button">
-                        登录
-                    </button>
-                    <button class="ui blue button w-1/2 md:w-1/5 text-xl ml-2" id="wescore_button">
-                        WeScore
-                    </button>
-            </div>
-        </div>
     </div>
 </div>
 
