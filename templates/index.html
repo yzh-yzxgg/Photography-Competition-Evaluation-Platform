@@ -108,6 +108,17 @@
         </div>
     </div>
 </div>
+<!-- 排行榜展示区域 -->
+<div class="flex flex-col items-center w-full px-4 mb-16">
+    <div class="w-full max-w-5xl mb-10">
+        <h2 class="text-2xl font-bold mb-4 text-center">当前总榜前三</h2>
+        <div class="ui three stackable cards" id="main_ranking"></div>
+    </div>
+    <div class="w-full max-w-5xl">
+        <h2 class="text-2xl font-bold mb-4 text-center">当前YourLife榜前三</h2>
+        <div class="ui three stackable cards" id="yourlife_ranking"></div>
+    </div>
+</div>
 
     <div class="flex flex-col items-end absolute bottom-0 w-full">
         {% include 'footer.html' %}
@@ -211,6 +222,56 @@
                 }
             });
     });
+    // 拉取主榜单前三照片
+$.ajax({
+    url: "/api/v1/rank/main_top3",
+    method: "GET",
+    timeout: 0,
+    headers: {
+        "Content-Type": "application/json",
+    },
+}).done((response) => {
+    if (response.success) {
+        for (const item of response.data) {
+            const card = `
+            <div class="card">
+                <div class="image">
+                    <img src="${item.image_url}" alt="Top Image">
+                </div>
+                <div class="content">
+                    <div class="header">分数: ${item.score}</div>
+                </div>
+            </div>`;
+            $("#main_ranking").append(card);
+        }
+    }
+});
+
+// 拉取 YourLife 榜前三照片
+$.ajax({
+    url: "/api/v1/rank/yourlife_top3",
+    method: "GET",
+    timeout:0,
+    headers: {
+        "Content-Type": "application/json",
+    },
+}).done((response) => {
+    if (response.success) {
+        for (const item of response.data) {
+            const card = `
+            <div class="card">
+                <div class="image">
+                    <img src="${item.image_url}" alt="YourLife Image">
+                </div>
+                <div class="content">
+                    <div class="header">分数: ${item.score}</div>
+                </div>
+            </div>`;
+            $("#yourlife_ranking").append(card);
+        }
+    }
+});
+
 
     $("#begin_button")[0].addEventListener("click", () => {
         $("#begin_button").addClass("loading");
