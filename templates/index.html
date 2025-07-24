@@ -24,13 +24,36 @@
                 }
                 else {
                     $("#logout_button").addClass("ui button red");
-                    $("#logout_button").text("退出登录");}
+                    $("#logout_button").text("退出登录");
+                }
             });
             var day=0;
             
         var logout = function(){
-            $.removeCookie('token');
-            window.location.href = "/";
+            $.ajax({
+                url: "/api/v1/session/verify",
+                method: "GET",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-Session-ID": $.cookie('token'),
+                },
+            }).done((response) => {
+                if (response.success) {
+                    if (response.data) {
+                        // 如果是注册评审，直接退出登录
+                        $.removeCookie('token');
+                        window.location.href = "/";
+                    } else {
+                        $("#login_modal")
+                        .modal({
+                            blurring: true,
+                            observeChanges: true,
+                        })
+                        .modal("show");
+                        $("#wescore_button").hide();
+                    }
+                }
+            });
         }
     </script>
 </head>
@@ -217,7 +240,7 @@
                         })
                         .modal("hide");
                     $("#logout_button").addClass("ui button red");
-                    $("#logout_button").text("退出登录");
+                    $("#logout_button").text("切换评审模式");
                     location.reload();
                 }
             });

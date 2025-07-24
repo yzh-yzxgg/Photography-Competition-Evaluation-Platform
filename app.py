@@ -59,10 +59,17 @@ def session_verify():
         return {"code": 400, "success": False, "data": {"message": "Invalid request"}}
     print (f"Received token: {token}")
     print (f"Certified user tokens: {public_user_token}")
-    if token in certified_user_token.values() or token in public_user_token.values():
+    if token in certified_user_token.values():
         return {
             "code": 200,
             "success": True,
+            "data": True,
+        }
+    elif token in public_user_token.values():
+        return {
+            "code": 200,
+            "success": True,
+            "data": False,
         }
     else:
         return {
