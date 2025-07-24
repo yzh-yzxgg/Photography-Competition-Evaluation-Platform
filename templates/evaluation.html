@@ -21,20 +21,20 @@
         });
 
         // 图片信息
-        $.ajax({
-            url: "/api/v1/com/info",
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "X-Session-ID": session_id,
-            },
-            data: JSON.stringify({ "cid": "{{cid}}" }),
-        }).done((response) => {
-            if (response.success){
-                $("#daynum").text("第" + day + "天 (" + (parseInt("{{cid}}") % 50) + "/50)");
-                $("#image").attr("src", "/uploads/" + response.path[0]);
-            }
-        });
+        // $.ajax({
+        //     url: "/api/v1/com/info",
+        //     method: "POST",
+        //     headers: {
+        //         "Content-Type": "application/json",
+        //         "X-Session-ID": session_id,
+        //     },
+        //     data: JSON.stringify({ "cid": "{{cid}}" }),
+        // }).done((response) => {
+        //     if (response.success){
+        //         $("#daynum").text("第" + day + "天 (" + (parseInt("{{cid}}") % 50) + "/50)");
+        //         $("#image").attr("src", "/uploads/" + response.path[0]);
+        //     }
+        // });
 
         var logout = function(){
             $.removeCookie('session');
@@ -116,38 +116,6 @@
 </div>
 
 <script>
-    // 登录按钮
-    $("#login_button")[0].addEventListener("click", () => {
-        var password = $("#login_password").val();
-        $.ajax({
-            url: "/api/v1/session/verify",
-            method: "GET",
-            headers: {
-                "Content-Type": "application/json",
-                "X-Session-ID": password,
-            },
-        }).done((response) => {
-            if (response.success){
-                $.cookie("session", password);
-                $("#login_modal").modal("hide");
-                $("#logout_button").addClass("ui small button red").text("退出登录");
-            }
-        });
-    });
-    // WeScore按钮 for 大众评审
-        $("#wescore_button")[0].addEventListener("click", () => {
-        console.log("WeScore clicked");
-         $.cookie("session", "public"); // 设置Session鉴权
-        $("#login_modal")
-            .modal({
-                blurring: true,
-                observeChanges: true,
-            })
-            .modal("hide");
-        $("#logout_button").addClass("ui small button red").text("退出登录");
-    });
-
-
     // 打分按钮事件
     $(".score-btn").on("click", function() {
         let score = parseInt($(this).data("score"));
@@ -195,6 +163,7 @@
 
     // 帮助按钮
     $("#help_button").on("click", () => {
+        console.log("Help button clicked");
         $("#help_modal")
             .modal({ blurring: true, observeChanges: true })
             .modal("show");

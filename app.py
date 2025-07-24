@@ -108,8 +108,10 @@ def day():
 @app.route("/api/v1/vote/query", methods=["POST"])
 def vote_vote():
     update_session()
-    uid = get_uid_from_session()
-    if not uid:
+    token = request.headers.get("X-Session-ID")
+    if not token:
+        return jsonify({"code": 401, "success": False, "data": {"message": "Invalid session ID"}})
+    if token not in certified_user_token.values() and token not in public_user_token.values():
         return jsonify({"code": 401, "success": False, "data": {"message": "Invalid session ID"}})
 
     data = request.json
@@ -125,20 +127,13 @@ def vote_vote():
     conn = sqlite3.connect(database)
     cursor = conn.cursor()
 
-    # 检查是否重投
-    cursor.execute("SELECT score FROM user_votes WHERE uid=? AND cid=?", (uid, cid))
-    existing = cursor.fetchone()
+    # 获取当前cid投票token_list
+    row = conn.execute("SELECT token_list FROM user_votes WHERE cid = ?", (cid,)).fetchone()
+    token_list = json.loads(row['token_list']) if row['token_list'] else {}
+    pre_score = token_list[token] if token in token_list else 0
 
-    if existing:
-        # 拒绝投票
-        conn.close()
-        return jsonify({"code": 409, "success": False, "data": {"message": "You have already voted for this photo"}})
+    # 更新投票记录
 
-    # 插入投票记录
-    cursor.execute("INSERT INTO user_votes (uid, cid, score) VALUES (?, ?, ?)", (uid, cid, score))
-
-    # 更新总分和投票数
-    cursor.execute("UPDATE photo_scores SET total_score = total_score + ?, vote_count = vote_count + 1 WHERE cid=?", (score, cid))
 
     conn.commit()
     conn.close()

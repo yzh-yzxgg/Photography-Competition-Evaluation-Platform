@@ -26,7 +26,8 @@ score_data = {
     'cid': [],         # 图片编号
     'cname': [],       # 照片名字
     'total_score': [], # 总分，初始0
-    'vote_count': []   # 投票次数，初始0
+    'vote_count': [],   # 投票次数，初始0
+    'your_life': 0
 }
 
 # 定义用户数量
@@ -47,7 +48,8 @@ public_user_data = {
 # 创建DataFrame来存储记录每张照片的投票与否（cid与token）
 vote_data = {
     'cid': [],        # 图片编号
-    'token_list': []  # 令牌列表
+    'token_list': [],  # 令牌列表
+    'your_life_token_list': []  # YourLife令牌列表
 }
 
 # 为每个图片文件生成信息
@@ -57,6 +59,7 @@ for idx, image_file in enumerate(image_files, start=1):
     score_data['cid'].append(idx)
     vote_data['cid'].append(idx)
     vote_data['token_list'].append('')  # 初始化投票列表
+    vote_data['your_life_token_list'].append('')  # 初始化YourLife令牌列表
 
     data['cname'].append(cname)
     score_data['cname'].append(cname)
