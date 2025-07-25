@@ -16,7 +16,7 @@ begin_day=(2025,7,26)
 # 初始化会话和用户信息
 certified_user_token = []
 public_user_token = []
-
+com_data = []
 
 #从SQL取回用户信息
 def load_certified_users():
@@ -34,6 +34,14 @@ def load_public_users():
     users = cursor.fetchall()
     conn.close()
     return users
+
+def load_com_data():
+    conn = sqlite3.connect(database)
+    cursor = conn.cursor()
+    cursor.execute("SELECT cid FROM uploads")
+    com_data = cursor.fetchall()
+    conn.close()
+    return com_data
 
 #对应用户
 def update_session():
@@ -84,6 +92,11 @@ def public_login():
     # 生成一个新的 token
     token = secrets.token_hex(16)
 
+    # 生成随机评审顺序，并以逗号分隔的字符串形式存储
+    com_data = load_com_data()
+    eval_order = random.sample(range(1, len(com_data) + 1), len(com_data))
+    eval_order_str = ','.join(map(str, eval_order))
+
     conn = sqlite3.connect(database)
     cursor = conn.cursor()
 
@@ -91,6 +104,7 @@ def public_login():
     # 插入新用户
     uid = str(uuid.uuid4())
     cursor.execute("INSERT INTO public_users (uid, token) VALUES (?, ?)", (uid, token))
+    cursor.execute("UPDATE public_users SET eval_order = ? WHERE uid = ?", (eval_order_str, uid))
 
     conn.commit()
     conn.close()

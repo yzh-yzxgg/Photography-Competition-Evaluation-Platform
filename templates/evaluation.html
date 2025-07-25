@@ -131,10 +131,9 @@
                 "score": score
             }),
         }).done((response) => {
-            $(".score-btn").removeClass("green"); // 重置颜色
-            $(this).addClass("green");
             if (response.success) {
-                alert("已打分：" + score + " 分！");
+                $(".score-btn").removeClass("green"); // 重置颜色
+                $(this).addClass("green");
             } else {
                 alert(response.data.message || "打分失败");
             }

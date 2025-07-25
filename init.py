@@ -37,12 +37,14 @@ certified_usersum = 10
 certified_user_data = {
     'uid': [],        # 用户ID
     'password': [] ,   # 密码
-    'token': []        # 令牌
+    'token': [],        # 令牌
+    'eval_order': []  # 照片评审顺序
 }
 
 public_user_data = {
     'uid': [],        # 用户ID
-    'token': []      # 令牌
+    'token': [],      # 令牌
+    'eval_order': []  # 照片评审顺序
 }
 
 # 创建DataFrame来存储记录每张照片的投票与否（cid与token）
@@ -69,10 +71,13 @@ for idx, image_file in enumerate(image_files, start=1):
     score_data['vote_count'].append(0)
 
 # 为认证用户生成信息
+eval_order = random.sample(range(1, len(image_files) + 1), len(image_files))
 for i in range(certified_usersum):
     certified_user_data['uid'].append(i + 1)  # 用户ID从1开始
     certified_user_data['password'].append(str(random.randint(1000, 9999)))  # 随机四位数字密码
     certified_user_data['token'].append(hashlib.sha256(str(random.getrandbits(256)).encode()).hexdigest()) # 生成随机令牌
+    # 生成随机评审顺序，并以逗号分隔的字符串形式存储
+    certified_user_data['eval_order'].append(','.join(map(str, eval_order)))  # 随机评审顺序字符串
 
 # 创建DataFrame
 df_uploads = pd.DataFrame(data)
