@@ -145,7 +145,7 @@
     $("#interesting_button").on("click", function() {
         let isActive = $(this).hasClass("green");
         $.ajax({
-            url: "/api/v1/vote/query",
+            url: "/api/v1/vote/yourlife",
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -162,10 +162,8 @@
             if (response.success) {
                 if (isActive) {
                     $(this).removeClass("green");
-                    alert("已取消YourLife评分");
                 } else {
                     $(this).addClass("green");
-                    alert("已增加YourLife评分");
                 }
             } else {
                 alert(response.data.message || "操作失败");

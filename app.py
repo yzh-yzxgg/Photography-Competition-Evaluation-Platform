@@ -152,6 +152,62 @@ def vote_vote():
 
     return jsonify({"code": 200, "success": True, "data": {"message": "Vote recorded successfully"}})
 
+# your life投票接口
+@app.route("/api/v1/vote/yourlife", methods=["POST"])
+def vote_yourlife():
+    update_session()
+    token = request.headers.get("X-Session-ID")
+    print(f"Received token: {token}")
+    if not token:
+        return jsonify({"code": 401, "success": False, "data": {"message": "Invalid session ID"}})
+    if token not in certified_user_token.values() and token not in public_user_token.values():
+        return jsonify({"code": 401, "success": False, "data": {"message": "Invalid session ID"}})
+
+    data = request.json
+    cid = data.get("cid")
+    your_life = data.get("interesting")  # 是否投票YourLife
+
+    if cid is None:
+        return jsonify({"code": 400, "success": False, "data": {"message": "cid required"}})
+
+    conn = sqlite3.connect(database)
+    cursor = conn.cursor()
+
+    # 获取当前cid投票your_life_token_list
+    row = conn.execute("SELECT your_life_token_list FROM user_votes WHERE cid = ?", (cid,)).fetchone()
+    your_life_token_list = json.loads(row[0]) if row and row[0] else {}  # 检查 row[0] 是否非空
+    pre_your_life = your_life_token_list.get(token, False)
+    your_life_token_list[token] = your_life
+    print(pre_your_life)
+    # 更新投票记录
+    conn.execute("UPDATE user_votes SET your_life_token_list = ? WHERE cid = ?", (json.dumps(your_life_token_list), cid))
+    # 更新照片的YourLife投票状态
+    if token in certified_user_token.values():
+        if your_life:
+            if not pre_your_life:
+                cursor.execute("UPDATE photo_scores_certified_users SET your_life = your_life + 1 WHERE cid = ?", (cid,))
+            else:
+                cursor.execute("UPDATE photo_scores_certified_users SET your_life = your_life - 1 WHERE cid = ?", (cid,))
+        else:
+            if pre_your_life:
+                cursor.execute("UPDATE photo_scores_certified_users SET your_life = your_life - 1 WHERE cid = ?", (cid,))
+            else:
+                cursor.execute("UPDATE photo_scores_certified_users SET your_life = your_life + 1 WHERE cid = ?", (cid,))
+    else:
+        if your_life:
+            if not pre_your_life:
+                cursor.execute("UPDATE photo_scores_public_users SET your_life = your_life + 1 WHERE cid = ?", (cid,))
+            else:
+                cursor.execute("UPDATE photo_scores_public_users SET your_life = your_life - 1 WHERE cid = ?", (cid,))
+        else:
+            if pre_your_life:
+                cursor.execute("UPDATE photo_scores_public_users SET your_life = your_life - 1 WHERE cid = ?", (cid,))
+            else:
+                cursor.execute("UPDATE photo_scores_public_users SET your_life = your_life + 1 WHERE cid = ?", (cid,))
+    conn.commit()
+    conn.close()
+    return jsonify({"code": 200, "success": True, "data": {"message": "YourLife vote recorded successfully"}})
+
 
 # 查询照片评分统计接口
 @app.route("/api/v1/photo/score/<int:cid>", methods=["GET"])
