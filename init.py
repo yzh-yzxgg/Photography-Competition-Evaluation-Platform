@@ -58,8 +58,8 @@ for idx, image_file in enumerate(image_files, start=1):
     data['cid'].append(idx)
     score_data['cid'].append(idx)
     vote_data['cid'].append(idx)
-    vote_data['token_list'].append('')  # 初始化投票列表
-    vote_data['your_life_token_list'].append('')  # 初始化YourLife令牌列表
+    vote_data['token_list'].append('{}')  # 初始化投票列表
+    vote_data['your_life_token_list'].append('{}')  # 初始化YourLife令牌列表
 
     data['cname'].append(cname)
     score_data['cname'].append(cname)

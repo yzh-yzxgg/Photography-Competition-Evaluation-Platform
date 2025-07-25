@@ -119,20 +119,20 @@
     // 打分按钮事件
     $(".score-btn").on("click", function() {
         let score = parseInt($(this).data("score"));
-        $(".score-btn").removeClass("green"); // 重置颜色
-        $(this).addClass("green");
         $.ajax({
             url: "/api/v1/vote/query",
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
-                "X-Session-ID": session_id,
+                "X-Session-ID": $.cookie('token'),
             },
             data: JSON.stringify({
                 "cid": cid,
                 "score": score
             }),
         }).done((response) => {
+            $(".score-btn").removeClass("green"); // 重置颜色
+            $(this).addClass("green");
             if (response.success) {
                 alert("已打分：" + score + " 分！");
             } else {
@@ -144,20 +144,32 @@
     // YourLife按钮
     $("#interesting_button").on("click", function() {
         let isActive = $(this).hasClass("green");
-        $(this).toggleClass("green");
-        $(this).text(isActive ? "YourLife" : "OurLife");
         $.ajax({
             url: "/api/v1/vote/query",
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
-                "X-Session-ID": session_id,
+                "X-Session-ID": $.cookie('token'),
             },
             data: JSON.stringify({
                 "cid": cid,
                 "score": 5,
                 "interesting": !isActive
             }),
+        }).done((response) => {
+            $(this).toggleClass("green");
+            $(this).text(isActive ? "YourLife" : "OurLife");
+            if (response.success) {
+                if (isActive) {
+                    $(this).removeClass("green");
+                    alert("已取消YourLife评分");
+                } else {
+                    $(this).addClass("green");
+                    alert("已增加YourLife评分");
+                }
+            } else {
+                alert(response.data.message || "操作失败");
+            }
         });
     });
 

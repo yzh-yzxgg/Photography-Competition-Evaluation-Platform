@@ -109,6 +109,7 @@ def day():
 def vote_vote():
     update_session()
     token = request.headers.get("X-Session-ID")
+    print(f"Received token: {token}")
     if not token:
         return jsonify({"code": 401, "success": False, "data": {"message": "Invalid session ID"}})
     if token not in certified_user_token.values() and token not in public_user_token.values():
@@ -129,12 +130,23 @@ def vote_vote():
 
     # 获取当前cid投票token_list
     row = conn.execute("SELECT token_list FROM user_votes WHERE cid = ?", (cid,)).fetchone()
-    token_list = json.loads(row['token_list']) if row['token_list'] else {}
+    token_list = json.loads(row[0]) if row and row[0] else {}  # 检查 row[0] 是否非空
     pre_score = token_list[token] if token in token_list else 0
-
+    token_list[token] = score
+    print(pre_score)
     # 更新投票记录
-    conn.execute("")
-
+    conn.execute("UPDATE user_votes SET token_list = ? WHERE cid = ?", (json.dumps(token_list), cid))
+    # 更新照片分数和投票次数
+    if token in certified_user_token.values():
+        if pre_score == 0:
+            cursor.execute("UPDATE photo_scores_certified_users SET total_score = total_score + ?, vote_count = vote_count + 1 WHERE cid = ?", (score - pre_score, cid))
+        else:
+            cursor.execute("UPDATE photo_scores_certified_users SET total_score = total_score + ? WHERE cid = ?", (score - pre_score, cid))
+    else:
+        if pre_score == 0:
+            cursor.execute("UPDATE photo_scores_public_users SET total_score = total_score + ?, vote_count = vote_count + 1 WHERE cid = ?", (score - pre_score, cid))
+        else:
+            cursor.execute("UPDATE photo_scores_public_users SET total_score = total_score + ? WHERE cid = ?", (score - pre_score, cid))
     conn.commit()
     conn.close()
 
@@ -166,42 +178,7 @@ def photo_score(cid):
         }
     })
 
-# 取消投票接口
-@app.route("/api/v1/vote/cancel", methods=["POST"])
-def vote_cancel():
-    update_session()
-    uid = get_uid_from_session()
-    if not uid:
-        return jsonify({"code": 401, "success": False, "data": {"message": "Invalid session ID"}})
 
-    data = request.json
-    cid = data.get("cid")
-
-    if cid is None:
-        return jsonify({"code": 400, "success": False, "data": {"message": "cid required"}})
-
-    conn = sqlite3.connect(database)
-    cursor = conn.cursor()
-
-    # 查询用户投过的分数
-    cursor.execute("SELECT score FROM user_votes WHERE uid=? AND cid=?", (uid, cid))
-    row = cursor.fetchone()
-    if not row:
-        conn.close()
-        return jsonify({"code": 404, "success": False, "data": {"message": "No vote to cancel"}})
-
-    user_score = row[0]
-
-    # 删除用户投票记录
-    cursor.execute("DELETE FROM user_votes WHERE uid=? AND cid=?", (uid, cid))
-
-    # 更新照片分数和投票次数
-    cursor.execute("UPDATE photo_scores SET total_score = total_score - ?, vote_count = vote_count - 1 WHERE cid=?", (user_score, cid))
-
-    conn.commit()
-    conn.close()
-
-    return jsonify({"code": 200, "success": True, "data": {"message": "Vote cancelled successfully"}})
 
 
 @app.route("/favicon.ico")
