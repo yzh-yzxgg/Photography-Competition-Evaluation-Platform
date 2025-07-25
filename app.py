@@ -133,7 +133,7 @@ def vote_vote():
     pre_score = token_list[token] if token in token_list else 0
 
     # 更新投票记录
-
+    conn.execute("")
 
     conn.commit()
     conn.close()
