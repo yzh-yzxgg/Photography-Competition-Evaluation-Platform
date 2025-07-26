@@ -248,7 +248,94 @@ def photo_score(cid):
         }
     })
 
+#查询总榜前三API
+@app.route("/api/v1/rank/main_top3", methods=["GET"])
+def get_main_top3():
+    try:
+        conn = sqlite3.connect('database.db')
+        cursor = conn.cursor()
 
+        # 查询得分最高
+        cursor.execute("""
+            SELECT cid, total_score 
+            FROM photo_scores_public_users 
+            WHERE total_score IS NOT NULL
+            ORDER BY total_score DESC 
+            LIMIT 3;
+        """)
+        results = cursor.fetchall()
+
+        top3 = []
+        for row in results:
+            cid = row[0]
+            score = row[1]
+
+            # 查找 uploads 表中对应 cid 的图片路径
+            cursor.execute("SELECT path FROM uploads WHERE cid = ?", (cid,))
+            path_result = cursor.fetchone()
+
+
+            top3.append({
+                "image_url": path_result,
+                "score": round(score, 2)
+            })
+
+        return jsonify({
+            "success": True,
+            "data": top3
+        })
+
+    except Exception as e:
+        print("Error:", e)
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        })
+
+
+#查询YourLife榜单前三
+@app.route("/api/v1/rank/yourlife_top3", methods=["GET"])
+def get_yourlife_top3():
+    try:
+        conn = sqlite3.connect('database.db')
+        cursor = conn.cursor()
+
+        # 查询YourLife得分最高的前三张照片
+        cursor.execute("""
+            SELECT cid, your_life 
+            FROM photo_scores_public_users 
+            WHERE your_life IS NOT NULL
+            ORDER BY your_life DESC 
+            LIMIT 3;
+        """)
+        results = cursor.fetchall()
+
+        top3 = []
+        for row in results:
+            cid = row[0]
+            score = row[1]
+
+            # 查找 uploads 表中对应 cid 的图片路径
+            cursor.execute("SELECT path FROM uploads WHERE cid = ?", (cid,))
+            path_result = cursor.fetchone()
+
+
+            top3.append({
+                "image_url": path_result,
+                "score": round(score, 2)
+            })
+
+        return jsonify({
+            "success": True,
+            "data": top3
+        })
+
+    except Exception as e:
+        print("Error:", e)
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        })
 
 
 @app.route("/favicon.ico")

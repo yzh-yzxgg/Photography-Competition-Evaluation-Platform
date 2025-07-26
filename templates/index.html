@@ -73,7 +73,7 @@
     <div class="flex flex-col flex-grow justify-center items-center mb-10">
         <div class="flex flex-col items-center w-full mb-5" style="width: 90%;">
             <h1 class="text-3xl font-bold">ScoreSYS—摄影协会比赛评审系统</h1>
-            <h5 class="text-lg" style="color: red;">我们的系统诠释公平 愿你们在公平之上诠释美学</h5>
+            <h5 class="text-lg" style="color: red;">我们的系统构建公平 愿你们在公平之上诠释美学</h5>
         </div>
         <div class="flex flex-col flex-grow items-center mb-4" style="width: 80%;">
             <table class="ui celled unstackable red table">
@@ -264,10 +264,10 @@ $.ajax({
             const card = `
             <div class="card">
                 <div class="image">
-                    <img src="${item.image_url}" alt="Top Image">
+                    <img src="${item.image_url}" alt="WeScore总榜">
                 </div>
                 <div class="content">
-                    <div class="header">分数: ${item.score}</div>
+                    <div class="header">作品指数: ${item.score * 100}</div>
                 </div>
             </div>`;
             $("#main_ranking").append(card);
@@ -289,10 +289,10 @@ $.ajax({
             const card = `
             <div class="card">
                 <div class="image">
-                    <img src="${item.image_url}" alt="YourLife Image">
+                    <img src="${item.image_url}" alt="YourLife榜单">
                 </div>
                 <div class="content">
-                    <div class="header">分数: ${item.score}</div>
+                    <div class="header">YourLife指数: ${item.score}</div>
                 </div>
             </div>`;
             $("#yourlife_ranking").append(card);
