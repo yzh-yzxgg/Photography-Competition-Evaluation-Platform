@@ -16,13 +16,15 @@ begin_day=(2025,7,26)
 # 初始化会话和用户信息
 certified_user_token = []
 public_user_token = []
+certified_user_eval_order = []
+public_user_eval_order = []
 com_data = []
 
 #从SQL取回用户信息
 def load_certified_users():
     conn = sqlite3.connect(database)
     cursor = conn.cursor()
-    cursor.execute("SELECT uid, password, token FROM certified_users")
+    cursor.execute("SELECT uid, password, token, eval_order FROM certified_users")
     users = cursor.fetchall()
     conn.close()
     return users
@@ -30,7 +32,7 @@ def load_certified_users():
 def load_public_users():
     conn = sqlite3.connect(database)
     cursor = conn.cursor()
-    cursor.execute("SELECT uid, token FROM public_users")
+    cursor.execute("SELECT uid, token, eval_order FROM public_users")
     users = cursor.fetchall()
     conn.close()
     return users
@@ -45,12 +47,16 @@ def load_com_data():
 
 #对应用户
 def update_session():
-    global certified_user_token, public_user_token
+    global certified_user_token, public_user_token, certified_user_eval_order, public_user_eval_order
     certified_users = load_certified_users()
     public_users = load_public_users()
 
     certified_user_token = {user[0]: user[2] for user in certified_users}
     public_user_token = {user[0]: user[1] for user in public_users}
+
+    # 更新评审顺序
+    certified_user_eval_order = {user[2]: user[3] for user in certified_users}
+    public_user_eval_order = {user[1]: user[2] for user in public_users}
 
 
 def get_day():
@@ -337,6 +343,57 @@ def get_yourlife_top3():
             "error": str(e)
         })
 
+# 给出用户评审turn查询图片信息info
+@app.route("/api/v1/com/info", methods=["POST"])
+def photo_info():
+    data = request.get_json()
+    update_session()
+    token = request.headers.get("X-Session-ID")
+    if not token:
+        return jsonify({"code": 401, "success": False, "data": {"message": "Invalid session ID"}})
+    
+    if token not in certified_user_token.values() and token not in public_user_token.values():
+        return jsonify({"code": 401, "success": False, "data": {"message": "Invalid session ID"}})
+
+    # 获取评审顺序
+    if token in certified_user_token.values():
+        eval_order = certified_user_eval_order.get(token, [])
+    else:
+        eval_order = public_user_eval_order.get(token, [])
+
+    if not eval_order:
+        return jsonify({"code": 404, "success": False, "data": {"message": "No evaluation order found"}})
+
+    eval_order_list = list(map(int, eval_order.split(',')))
+    
+    # 根据turn获取对应的cid
+    try:
+        turn = int(data.get('turn', 1))
+        cid = eval_order_list[turn - 1]  # turn从1开始
+    except (ValueError, IndexError):
+        return jsonify({"code": 400, "success": False, "data": {"message": "Invalid turn"}})
+
+    conn = sqlite3.connect(database)
+    cursor = conn.cursor()
+    
+    cursor.execute("SELECT cname, path FROM uploads WHERE cid=?", (cid,))
+    row = cursor.fetchone()
+    
+    if not row:
+        return jsonify({"code": 404, "success": False, "data": {"message": "Photo not found"}})
+
+    cname, path = row
+    conn.close()
+
+    return jsonify({
+        "code": 200,
+        "success": True,
+        "data": {
+            "cid": cid,
+            "cname": cname,
+            "path": path
+        }
+    })
 
 @app.route("/favicon.ico")
 def favicon():
@@ -351,9 +408,9 @@ def uploaded_file(filename):
 def index():
     return render_template("index.html")
 
-@app.route("/evaluation/<cid>")
-def evaluation(cid):
-    return render_template("evaluation.html", cid=cid)
+@app.route("/evaluation/<turn>")
+def evaluation(turn):
+    return render_template("evaluation.html", turn=turn)
 
 
 if __name__ == "__main__":
