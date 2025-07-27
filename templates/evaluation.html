@@ -10,7 +10,16 @@
         var user = 0;
 
         var day = 0;
+        
         $.ajax({
+            url: "/api/v1/day",
+            method: "GET",
+            headers: {
+                "Content-Type": "application/json",
+                "X-Session-ID": $.cookie('token'),
+            },
+        }).done((response) => {
+            $.ajax({
             url: "/api/v1/session/verify"
             , method: "GET",
             headers: {
@@ -24,14 +33,6 @@
                 window.location.href = "/";
             }
         });
-        $.ajax({
-            url: "/api/v1/day",
-            method: "GET",
-            headers: {
-                "Content-Type": "application/json",
-                "X-Session-ID": $.cookie('token'),
-            },
-        }).done((response) => {
             day = response.data;
             if (user) {
                 if (turn > 50*day) {
