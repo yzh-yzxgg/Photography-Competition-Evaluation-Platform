@@ -10,3 +10,56 @@
     $.fn.modal.settings.duration = 250;
     $.fn.transition.settings.duration = 250;
 </script>
+
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<style>
+    @media screen and (max-width: 768px) {
+        h6.text-4xl {
+            font-size: 1.5rem; /* 缩小标题 */
+        }
+
+        .score-btn,
+        #interesting_button,
+        #prev_button,
+        #next_button,
+        #help_button {
+            font-size: 0.9rem !important;
+            padding: 0.6em 1em !important;
+        }
+
+        #score_buttons {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        #score_buttons .ui.button {
+            margin-bottom: 0.5em;
+            width: 4rem;
+        }
+
+        .ui.blue.button, .ui.basic.red.button {
+            font-size: 0.9rem;
+        }
+
+        #image {
+            width: 100%;
+            max-width: 100%;
+            height: auto;
+        }
+    }
+</style>
+
+
+<script>
+    $(document).ready(function () {
+        if (window.innerWidth <= 768) {
+            $(".score-btn, #interesting_button, #prev_button, #next_button, #help_button")
+                .css({
+                    "font-size": "0.9rem",
+                    "padding": "0.6em 1em"
+                });
+        }
+    });
+</script>
