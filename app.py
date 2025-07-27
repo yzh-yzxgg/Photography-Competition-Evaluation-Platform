@@ -279,10 +279,10 @@ def get_main_top3():
             # 查找 uploads 表中对应 cid 的图片路径
             cursor.execute("SELECT path FROM uploads WHERE cid = ?", (cid,))
             path_result = cursor.fetchone()
-
+            image_path = path_result[0] if path_result else ""
 
             top3.append({
-                "image_url": path_result,
+                "image_url": f"uploads/{image_path}",
                 "score": round(score, 2)
             })
 
@@ -324,12 +324,13 @@ def get_yourlife_top3():
             # 查找 uploads 表中对应 cid 的图片路径
             cursor.execute("SELECT path FROM uploads WHERE cid = ?", (cid,))
             path_result = cursor.fetchone()
-
+            image_path = path_result[0] if path_result else ""
 
             top3.append({
-                "image_url": path_result,
+                "image_url": f"uploads/{image_path}",
                 "score": round(score, 2)
             })
+
 
         return jsonify({
             "success": True,
