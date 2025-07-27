@@ -6,18 +6,46 @@
     <script>
         var session_id = $.cookie('session');
         var cid = parseInt("{{cid}}");
-
+        var turn = parseInt("{{turn}}");
+        var user = 0;
 
         var day = 0;
+        $.ajax({
+            url: "/api/v1/session/verify"
+            , method: "GET",
+            headers: {
+                "Content-Type": "application/json",
+                "X-Session-ID": $.cookie('token'),
+            }, 
+        }).done((response) => {
+            if (response.success) {
+                user = response.data.user;
+            } else {
+                window.location.href = "/";
+            }
+        });
         $.ajax({
             url: "/api/v1/day",
             method: "GET",
             headers: {
                 "Content-Type": "application/json",
-                "X-Session-ID": session_id,
+                "X-Session-ID": $.cookie('token'),
             },
         }).done((response) => {
             day = response.data;
+            if (user) {
+                if (turn > 50*day) {
+                    alert("您已超出今天评分次数上限");
+                    window.location.href = "/";
+                }
+            }
+            else{
+                console.log(30*day);
+                if (turn > 30*day) {
+                    alert("您已超出今天评分次数上限");
+                    window.location.href = "/";
+                }
+            }
         });
 
         

@@ -61,7 +61,7 @@ def update_session():
 
 def get_day():
     begin_date = datetime(*begin_day)
-    return (datetime.now() - begin_date).days+1
+    return (datetime.now() - begin_date).days
 
 #用户鉴权
 @app.route("/api/v1/session/verify", methods=["GET"])
