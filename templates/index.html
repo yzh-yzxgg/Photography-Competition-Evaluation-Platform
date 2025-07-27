@@ -175,18 +175,17 @@
             }
         });
     $.ajax({
-        url: "/api/v1/com/query",
+        url: "/api/v1/com/current-turn",
         method: "GET",
         timeout: 0,
         headers: {
             "Content-Type": "application/json",
-            "X-Session-ID": $.cookie('session'),
+            "X-Session-ID": $.cookie('token'),
         },
         }).done((response) => {
             if (response.success){
-                $("#begin_button").text("开始评审("+response.data+"/50)");
                 $("#begin_button").on("click", function() {
-                    window.location.href = "/evaluation/"+(response.data+1);
+                    window.location.href = "/evaluation/"+(response.data.turn);
                 });
             }
         });

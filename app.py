@@ -110,7 +110,7 @@ def public_login():
     # 插入新用户
     uid = str(uuid.uuid4())
     cursor.execute("INSERT INTO public_users (uid, token) VALUES (?, ?)", (uid, token))
-    cursor.execute("UPDATE public_users SET eval_order = ? WHERE uid = ?", (eval_order_str, uid))
+    cursor.execute("UPDATE public_users SET eval_order = ?, current_turn = ? WHERE uid = ?", (eval_order_str, 1, uid))
 
     conn.commit()
     conn.close()
@@ -343,6 +343,38 @@ def get_yourlife_top3():
             "error": str(e)
         })
 
+# 查询当前评审turn
+@app.route("/api/v1/com/current-turn", methods=["GET"])
+def current_turn():
+    update_session()
+    token = request.headers.get("X-Session-ID")
+    if not token:
+        return jsonify({"code": 401, "success": False, "data": {"message": "Invalid session ID"}})
+    
+    if token not in certified_user_token.values() and token not in public_user_token.values():
+        return jsonify({"code": 401, "success": False, "data": {"message": "Invalid session ID"}})
+
+    # 获取评审顺序
+    conn = sqlite3.connect('database.db')
+    cursor = conn.cursor()
+    if token in certified_user_token.values():
+        cursor.execute("SELECT current_turn FROM certified_users WHERE token=?", (token,))
+        result = cursor.fetchone()
+        if result:
+            current_turn = result[0]
+        else:
+            return jsonify({"code": 404, "success": False, "data": {"message": "Current turn not found"}})
+    else:
+        cursor.execute("SELECT current_turn FROM public_users WHERE token=?", (token,))
+        result = cursor.fetchone()
+        if result:
+            current_turn = result[0]
+        else:
+            return jsonify({"code": 404, "success": False, "data": {"message": "Current turn not found"}})
+
+    conn.close()
+    return jsonify({"code": 200, "success": True, "data": {"turn": current_turn}})
+
 # 给出用户评审turn查询图片信息info
 @app.route("/api/v1/com/info", methods=["POST"])
 def photo_info():
@@ -365,7 +397,6 @@ def photo_info():
         return jsonify({"code": 404, "success": False, "data": {"message": "No evaluation order found"}})
 
     eval_order_list = list(map(int, eval_order.split(',')))
-    
     # 根据turn获取对应的cid
     try:
         turn = int(data.get('turn', 1))
@@ -375,6 +406,10 @@ def photo_info():
 
     conn = sqlite3.connect(database)
     cursor = conn.cursor()
+    if token in certified_user_token.values():
+        cursor.execute("UPDATE certified_users SET current_turn = ? WHERE token = ?", (turn, token))
+    else:
+        cursor.execute("UPDATE public_users SET current_turn = ? WHERE token = ?", (turn, token))
     
     cursor.execute("SELECT cname, path FROM uploads WHERE cid=?", (cid,))
     row = cursor.fetchone()
@@ -383,6 +418,7 @@ def photo_info():
         return jsonify({"code": 404, "success": False, "data": {"message": "Photo not found"}})
 
     cname, path = row
+    conn.commit()
     conn.close()
 
     return jsonify({
