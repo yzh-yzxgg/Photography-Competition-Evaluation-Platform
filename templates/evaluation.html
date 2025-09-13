@@ -2,68 +2,69 @@
 <html lang="zh_cn">
 <head>
     {% include 'head.html' %}
-    <title>光影摄协摄影比赛评审平台</title>    
+    <title>ScoreSYS-摄影比赛评审平台</title>    
     <script>
-        session_id=$.cookie('session');
-        var cid="{{cid}}";
-        cid=parseInt(cid);
-        $.ajax({
-                url: "/api/v1/session/verify",
-                method: "GET",
-                timeout: 0,
-                headers: {
-                    "Content-Type": "application/json",
-                    "X-Session-ID": session_id,
-                },
-            }).done((response) => {
-                if (response.success==false){
-                    $("#login_modal")
-                        .modal({
-                            blurring: true,
-                            observeChanges: true,
-                        })
-                        .modal("show");
-                }
-                else 
-                    $("#logout_button").addClass("ui small button red");
-                    $("#logout_button").text("退出登录");
-            });
+        var session_id = $.cookie('session');
+        var cid = parseInt("{{cid}}");
+        var turn = parseInt("{{turn}}");
+        var user = 0;
 
-        var day=0;
+        var day = 0;
+        
         $.ajax({
             url: "/api/v1/day",
-            method: "GET", 
-            timeout: 0,
+            method: "GET",
             headers: {
                 "Content-Type": "application/json",
-                "X-Session-ID": session_id,
+                "X-Session-ID": $.cookie('token'),
             },
         }).done((response) => {
-            day=response.data;
+            $.ajax({
+            url: "/api/v1/session/verify"
+            , method: "GET",
+            headers: {
+                "Content-Type": "application/json",
+                "X-Session-ID": $.cookie('token'),
+            }, 
+        }).done((response) => {
+            if (response.success) {
+                user = response.data.user;
+            } else {
+                window.location.href = "/";
+            }
         });
-        if(cid<=(day)*50||cid>(day+1)*50){
-            window.location.href = "/";
-        }
-        var logout = function(){
-            $.removeCookie('session');
-            window.location.href = "/";
-        }
+            day = response.data;
+            if (user) {
+                if (turn > 50*day) {
+                    alert("您已超出今天评分次数上限");
+                    window.location.href = "/";
+                }
+            }
+            else{
+                console.log(30*day);
+                if (turn > 30*day) {
+                    alert("您已超出今天评分次数上限");
+                    window.location.href = "/";
+                }
+            }
+        });
+
+        
         $.ajax({
             url: "/api/v1/com/info",
             method: "POST",
-            timeout: 0,
             headers: {
                 "Content-Type": "application/json",
-                "X-Session-ID": session_id,
+                "X-Session-ID": $.cookie('token'),
             },
-            data: JSON.stringify({
-                "cid": "{{cid}}" ,
-            }),
+            data: JSON.stringify({ "cid": "{{0}}" , "turn": "{{turn}}" }),
         }).done((response) => {
             console.log(response);
-            if (response.success){
-                $("#daynum").text("第"+day+"天("+"{{cid}}"%50+"/50)");
-                $("#image").attr("src", "/uploads/"+response.path[0]);
+            if (response.success) {
+                cid = response.data.cid;
+                $("#image").attr("src", "/uploads/" + response.data.path);
+            } else {
+                alert(response.data.message || "获取图片信息失败");
             }
         });
 
@@ -76,172 +77,165 @@
           <div class="py-4 border-b border-slate-900/10 lg:px-1 lg:border-0 dark:border-slate-300/10 mx-4 lg:mx-0">
             <div class="flex justify-between items-center">
                 <img src="/favicon.ico" alt="Logo" width="32" height="32" onclick="window.location.href='/'">
-                <h6 class="text-xl font-bold">光影摄协摄影比赛评审平台</h6>
-                <div class="" id="logout_button" onclick="logout()">
+                <h6 class="text-4xl font-bold">ScoreSYS-摄影比赛评审平台</h6>
+                <div class="flex items-center">
+                    <div class="" id="logout_button" onclick="logout()"></div>
+                    <button class="ui blue button ml-2" id="help_button">帮助</button>
                 </div>
             </div>
           </div>
         </div>
     </div>
+
     <div class="flex flex-col flex-grow justify-center items-center mb-10">
         <div class="flex flex-col items-center w-full mb-3" style="width: 90%;">
             <h1 class="text-3xl font-bold" id="daynum"></h1>
         </div>
-        <div class="flex justify-end mb-3" >
+
+        <div class="flex justify-end mb-3">
             <button id="prev_button" class="ui basic red icon button">
                 <i class="angle double left icon"></i>
             </button>
-            <button id="vote_botton" class="ui huge toggle button">投票</button>
+            
+            <!-- 评分按钮 -->
+            <div id="score_buttons" class="ui buttons ml-2 mr-2">
+                <button class="ui button score-btn" data-score="1">1分</button>
+                <button class="ui button score-btn" data-score="2">2分</button>
+                <button class="ui button score-btn" data-score="3">3分</button>
+                <button class="ui button score-btn" data-score="4">4分</button>
+                <button class="ui button score-btn" data-score="5">5分</button>
+            </div>
+            
+            <!-- YourLife按钮 -->
+            <button id="interesting_button" class="ui blue button">YourLife</button>
+            
             <button id="next_button" class="ui basic red icon button">
                 <i class="angle double right icon"></i>
             </button>
         </div>
+
         <div class="flex flex-col items-center w-full mb-5" style="width: 95%;">
-            <img id="image" class="ui bordered fluid image" src="">
+            <img id="image"
+                class="ui bordered image"
+                style="max-width: 100%; height: auto;"
+                src="/uploads/your-image.jpg">
         </div>
-        <div class="ui modal tiny" id="login_modal">
-            <div class="header">
-                <h3>输入登录密码</h3>
-            </div>
-            <div class="content">
-                <div class="field">
-                    <div class="ui form">
-                        <div class="field">
-                            <label>登录密码</label>
-                            <input
-                                    id="login_password"
-                                    placeholder="登录密码"
-                                    type="text"
-                            />
-                        </div>
-                    </div>
-                    <div class="flex mt-2">
-                        <p class="mb-6" id="upload_warning" style="color: red;"></p>
-                    </div>
-                    <div class="flex justify-center mt-2">
-                        <button
-                                class="ui button red w-1/2 md:w-1/5 text-xl"
-                                id="login_button"
-                        >
-                            登录
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
+
+
+
+
+
     </div>
 </div>
+
+    </div>
 </div>
+
+<!-- 帮助模态框 -->
+<div class="ui modal" id="help_modal">
+    <div class="header">
+        <h3>帮助信息</h3>
+    </div>
+    <div class="content">
+        <p>欢迎使用 <b>ScoreSYS</b> 社团自研摄影比赛评审平台</p>
+        <ul>
+            <li>点击1-5分按钮给照片评分</li>
+            <li>点击 "YourLife" 按钮为照片增加YourLife榜单指数</li>
+            <li>公开评审限评30张，注册评审限评50 张</li>
+            <li>点击左右箭头切换下一张照片。</li>
+        </ul>
+    </div>
+    <div class="actions">
+        <div class="ui approve button">我知道了</div>
+    </div>
+</div>
+
+<!-- 图片模态框结构 -->
+<div class="ui modal" id="imageModal" style="max-height: 90vh; overflow: hidden;">
+  <div class="image content" style="max-height: 90vh; overflow: hidden; display: flex; justify-content: center; align-items: center;">
+    <img id="modalImage"
+         class="ui centered image"
+         style="max-height: 85vh; width: auto; height: auto; object-fit: contain;"
+         src="">
+  </div>
+</div>
+
 <script>
-    $("#daynum").text("第"+day+"天(0/50)");
-    $.ajax({
-        url: "/api/v1/vote/query",
-        method: "POST",
-        timeout: 0,
-        headers: {
-            "Content-Type": "application/json",
-            "X-Session-ID": session_id,
-        },
-        data: JSON.stringify({
-            "cid": "{{cid}}" ,
-        }),
-    }).done((response) => {
-        console.log(response);
-        if (response.data[0]>0){
-            $("#vote_botton").addClass("active");
-            $("#vote_botton").text("已投票");
-        }
-        else{
-            $("#vote_botton").removeClass("active");
-            $("#vote_botton").text("投票");
-        }
+    
+    $("#image").on("click", function () {
+        const src = $(this).attr("src");
+        $("#modalImage").attr("src", src);
+        $("#imageModal").modal('show');
     });
-    $("#login_button")[0].addEventListener("click", () => {
-        console.log("login_button clicked");
-        password = $("#login_password").val();
-        console.log(password);
+
+    // 打分按钮事件
+    $(".score-btn").on("click", function() {
+        let score = parseInt($(this).data("score"));
         $.ajax({
-                url: "/api/v1/session/verify",
-                method: "GET",
-                timeout: 0,
-                headers: {
-                    "Content-Type": "application/json",
-                    "X-Session-ID": password,
-                },
-            }).done((response) => {
-                console.log(response);
-                if (response.success){
-                    $.cookie("session", password);
-                    $("#login_modal")
-                        .modal({
-                            blurring: true,
-                            observeChanges: true,
-                        })
-                        .modal("hide");
-                    $("#logout_button").addClass("ui small button red");
-                    $("#logout_button").text("退出登录");
+            url: "/api/v1/vote/query",
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-Session-ID": $.cookie('token'),
+            },
+            data: JSON.stringify({
+                "cid": cid,
+                "score": score
+            }),
+        }).done((response) => {
+            if (response.success) {
+                $(".score-btn").removeClass("green"); // 重置颜色
+                $(this).addClass("green");
+            } else {
+                alert(response.data.message || "打分失败");
+            }
+        });
+    });
+
+    // YourLife按钮
+    $("#interesting_button").on("click", function() {
+        let isActive = $(this).hasClass("green");
+        $.ajax({
+            url: "/api/v1/vote/yourlife",
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-Session-ID": $.cookie('token'),
+            },
+            data: JSON.stringify({
+                "cid": cid,
+                "score": 5,
+                "interesting": !isActive
+            }),
+        }).done((response) => {
+            $(this).toggleClass("green");
+            $(this).text(isActive ? "YourLife" : "OurLife");
+            if (response.success) {
+                if (isActive) {
+                    $(this).removeClass("green");
+                } else {
+                    $(this).addClass("green");
                 }
-            });
-    });
-    var disvote = function(){
-        console.log("disvote clicked");
-        $("#vote_botton").removeClass("toggle");
-        $("#vote_botton").addClass("loading");
-        $.ajax({
-            url: "/api/v1/vote/cancel",
-            method: "POST",
-            timeout: 0,
-            headers: {
-                "Content-Type": "application/json",
-                "X-Session-ID": session_id,
-            },
-            data: JSON.stringify({
-                "cid": "{{cid}}" ,
-            }),
-        }).done((response) => {
-            console.log(response);
-            if (response.success){
-                $("#vote_botton").removeClass("loading");
-                $("#vote_botton").addClass("toggle");
-                $("#vote_botton").removeClass("active");
-                $("#vote_botton").text("投票");
-            }
-        });
-    }
-    $("#vote_botton")[0].addEventListener("click", () => {
-        if ($("#vote_botton").hasClass("active")){
-            disvote();
-            return;
-        }
-        console.log("vote_botton clicked");
-        $("#vote_botton").removeClass("toggle");
-        $("#vote_botton").addClass("loading");
-        $.ajax({
-            url: "/api/v1/vote/vote",
-            method: "POST",
-            timeout: 0,
-            headers: {
-                "Content-Type": "application/json",
-                "X-Session-ID": session_id,
-            },
-            data: JSON.stringify({
-                "cid": "{{cid}}" ,
-            }),
-        }).done((response) => {
-            console.log(response);
-            if (response.success){
-                $("#vote_botton").removeClass("loading");
-                $("#vote_botton").addClass("toggle");
-                $("#vote_botton").addClass("active");
-                $("#vote_botton").text("已投票");
+            } else {
+                alert(response.data.message || "操作失败");
             }
         });
     });
-    $("#prev_button")[0].addEventListener("click", () => {
-        window.location.href = "/evaluation/"+(cid-1);
+
+    // 帮助按钮
+    $("#help_button").on("click", () => {
+        console.log("Help button clicked");
+        $("#help_modal")
+            .modal({ blurring: true, observeChanges: true })
+            .modal("show");
     });
-    $("#next_button")[0].addEventListener("click", () => {
-        window.location.href = "/evaluation/"+(cid+1);
+
+    // 翻页按钮
+    $("#prev_button").on("click", () => {
+        window.location.href = "/evaluation/" + (parseInt("{{turn}}") - 1);
+    });
+    $("#next_button").on("click", () => {
+        window.location.href = "/evaluation/" + (parseInt("{{turn}}") + 1);
     });
 </script>
 </body>

@@ -1,4 +1,5 @@
-# Photography-Competition-Evaluation-Platform
+基于Python,SQL,flask,pandas研发
+=======
 光影摄影协会摄影比赛在线评审平台
 AGP School Photography Competition Voting System
 
