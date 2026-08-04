@@ -1,242 +1,43 @@
 <!DOCTYPE html>
-<html lang="zh_cn">
+<html lang="zh-CN">
 <head>
     {% include 'head.html' %}
-    <title>ScoreSYS-摄影比赛评审平台</title>    
-    <script>
-        var session_id = $.cookie('session');
-        var cid = parseInt("{{cid}}");
-        var turn = parseInt("{{turn}}");
-        var user = 0;
-
-        var day = 0;
-        
-        $.ajax({
-            url: "/api/v1/day",
-            method: "GET",
-            headers: {
-                "Content-Type": "application/json",
-                "X-Session-ID": $.cookie('token'),
-            },
-        }).done((response) => {
-            $.ajax({
-            url: "/api/v1/session/verify"
-            , method: "GET",
-            headers: {
-                "Content-Type": "application/json",
-                "X-Session-ID": $.cookie('token'),
-            }, 
-        }).done((response) => {
-            if (response.success) {
-                user = response.data.user;
-            } else {
-                window.location.href = "/";
-            }
-        });
-            day = response.data;
-            if (user) {
-                if (turn > 50*day) {
-                    alert("您已超出今天评分次数上限");
-                    window.location.href = "/";
-                }
-            }
-            else{
-                console.log(30*day);
-                if (turn > 30*day) {
-                    alert("您已超出今天评分次数上限");
-                    window.location.href = "/";
-                }
-            }
-        });
-
-        
-        $.ajax({
-            url: "/api/v1/com/info",
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "X-Session-ID": $.cookie('token'),
-            },
-            data: JSON.stringify({ "cid": "{{0}}" , "turn": "{{turn}}" }),
-        }).done((response) => {
-            console.log(response);
-            if (response.success) {
-                cid = response.data.cid;
-                $("#image").attr("src", "/uploads/" + response.data.path);
-            } else {
-                alert(response.data.message || "获取图片信息失败");
-            }
-        });
-
-    </script>
+    <title>评审中 · ScoreSYS</title>
 </head>
 <body>
-<div class="app">
-    <div class="z-40 w-full mb-3">
-        <div class="max-w-8xl mx-auto text-lg">
-          <div class="py-4 border-b border-slate-900/10 lg:px-1 lg:border-0 dark:border-slate-300/10 mx-4 lg:mx-0">
-            <div class="flex justify-between items-center">
-                <img src="/favicon.ico" alt="Logo" width="32" height="32" onclick="window.location.href='/'">
-                <h6 class="text-4xl font-bold">ScoreSYS-摄影比赛评审平台</h6>
-                <div class="flex items-center">
-                    <div class="" id="logout_button" onclick="logout()"></div>
-                    <button class="ui blue button ml-2" id="help_button">帮助</button>
-                </div>
-            </div>
-          </div>
-        </div>
-    </div>
+<main class="evaluation-shell">
+    <header class="evaluation-topbar">
+        <a class="brand" href="/"><span class="brand-mark">S.</span><span>ScoreSYS<small>PRIVATE REVIEW ROOM</small></span></a>
+        <span class="eval-meta" id="turn_label">WORK · {{ turn }}</span>
+        <div class="top-actions"><button class="button button-outline" id="help_button" type="button">评审说明</button><button class="button button-primary" id="back_button" type="button">返回首页</button></div>
+    </header>
+    <section class="eval-layout">
+        <div class="image-stage" id="image_stage"><span class="image-loading">LOADING IMAGE…</span><img id="image" alt="正在加载参赛作品" src="" /></div>
+        <aside class="side-panel">
+            <h1>你的感受？</h1><p>请以构图、光影、表达与完整度为依据，为这张作品留下评分。</p>
+            <div><span class="choice-label">选择分数 / 1–5</span><div class="score-group" id="score_buttons"><button class="score-button" data-score="1" type="button">1</button><button class="score-button" data-score="2" type="button">2</button><button class="score-button" data-score="3" type="button">3</button><button class="score-button" data-score="4" type="button">4</button><button class="score-button" data-score="5" type="button">5</button></div></div>
+            <div><span class="choice-label">一瞬生活感</span><button class="life-button" id="interesting_button" type="button">✦ 推荐到 YourLife</button></div>
+            <div class="navigator"><button class="button button-outline" id="prev_button" type="button">← 上一张</button><button class="button button-primary" id="next_button" type="button">下一张 →</button></div>
+        </aside>
+    </section>
+</main>
 
-    <div class="flex flex-col flex-grow justify-center items-center mb-10">
-        <div class="flex flex-col items-center w-full mb-3" style="width: 90%;">
-            <h1 class="text-3xl font-bold" id="daynum"></h1>
-        </div>
-
-        <div class="flex justify-end mb-3">
-            <button id="prev_button" class="ui basic red icon button">
-                <i class="angle double left icon"></i>
-            </button>
-            
-            <!-- 评分按钮 -->
-            <div id="score_buttons" class="ui buttons ml-2 mr-2">
-                <button class="ui button score-btn" data-score="1">1分</button>
-                <button class="ui button score-btn" data-score="2">2分</button>
-                <button class="ui button score-btn" data-score="3">3分</button>
-                <button class="ui button score-btn" data-score="4">4分</button>
-                <button class="ui button score-btn" data-score="5">5分</button>
-            </div>
-            
-            <!-- YourLife按钮 -->
-            <button id="interesting_button" class="ui blue button">YourLife</button>
-            
-            <button id="next_button" class="ui basic red icon button">
-                <i class="angle double right icon"></i>
-            </button>
-        </div>
-
-        <div class="flex flex-col items-center w-full mb-5" style="width: 95%;">
-            <img id="image"
-                class="ui bordered image"
-                style="max-width: 100%; height: auto;"
-                src="/uploads/your-image.jpg">
-        </div>
-
-
-
-
-
-    </div>
-</div>
-
-    </div>
-</div>
-
-<!-- 帮助模态框 -->
-<div class="ui modal" id="help_modal">
-    <div class="header">
-        <h3>帮助信息</h3>
-    </div>
-    <div class="content">
-        <p>欢迎使用 <b>ScoreSYS</b> 社团自研摄影比赛评审平台</p>
-        <ul>
-            <li>点击1-5分按钮给照片评分</li>
-            <li>点击 "YourLife" 按钮为照片增加YourLife榜单指数</li>
-            <li>公开评审限评30张，注册评审限评50 张</li>
-            <li>点击左右箭头切换下一张照片。</li>
-        </ul>
-    </div>
-    <div class="actions">
-        <div class="ui approve button">我知道了</div>
-    </div>
-</div>
-
-<!-- 图片模态框结构 -->
-<div class="ui modal" id="imageModal" style="max-height: 90vh; overflow: hidden;">
-  <div class="image content" style="max-height: 90vh; overflow: hidden; display: flex; justify-content: center; align-items: center;">
-    <img id="modalImage"
-         class="ui centered image"
-         style="max-height: 85vh; width: auto; height: auto; object-fit: contain;"
-         src="">
-  </div>
-</div>
+<div class="modal-backdrop" id="help_modal" role="dialog" aria-modal="true" aria-labelledby="help_title"><div class="modal"><button class="modal-close" type="button" data-close-help aria-label="关闭">×</button><p class="eyebrow">HOW TO REVIEW</p><h2 id="help_title">评审说明</h2><ul class="help-list"><li>每张作品可选择 1–5 分，重复选择会更新本张作品的评分。</li><li>“YourLife”表示作品具有打动你的真实生活感，可随时取消。</li><li>系统已随机排列作品，请独立判断，避免与他人讨论作品身份。</li><li>使用下方按钮或键盘方向键切换作品；点击图片可放大查看细节。</li></ul><div class="modal-actions"><button class="button button-primary" type="button" data-close-help>我明白了</button></div></div></div>
+<div class="modal-backdrop" id="image_modal" role="dialog" aria-modal="true" aria-label="放大查看作品"><div class="modal modal-wide"><button class="modal-close" type="button" data-close-image aria-label="关闭">×</button><img class="modal-image" id="modal_image" alt="放大查看参赛作品" src=""></div></div>
 
 <script>
-    
-    $("#image").on("click", function () {
-        const src = $(this).attr("src");
-        $("#modalImage").attr("src", src);
-        $("#imageModal").modal('show');
-    });
-
-    // 打分按钮事件
-    $(".score-btn").on("click", function() {
-        let score = parseInt($(this).data("score"));
-        $.ajax({
-            url: "/api/v1/vote/query",
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "X-Session-ID": $.cookie('token'),
-            },
-            data: JSON.stringify({
-                "cid": cid,
-                "score": score
-            }),
-        }).done((response) => {
-            if (response.success) {
-                $(".score-btn").removeClass("green"); // 重置颜色
-                $(this).addClass("green");
-            } else {
-                alert(response.data.message || "打分失败");
-            }
-        });
-    });
-
-    // YourLife按钮
-    $("#interesting_button").on("click", function() {
-        let isActive = $(this).hasClass("green");
-        $.ajax({
-            url: "/api/v1/vote/yourlife",
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "X-Session-ID": $.cookie('token'),
-            },
-            data: JSON.stringify({
-                "cid": cid,
-                "score": 5,
-                "interesting": !isActive
-            }),
-        }).done((response) => {
-            $(this).toggleClass("green");
-            $(this).text(isActive ? "YourLife" : "OurLife");
-            if (response.success) {
-                if (isActive) {
-                    $(this).removeClass("green");
-                } else {
-                    $(this).addClass("green");
-                }
-            } else {
-                alert(response.data.message || "操作失败");
-            }
-        });
-    });
-
-    // 帮助按钮
-    $("#help_button").on("click", () => {
-        console.log("Help button clicked");
-        $("#help_modal")
-            .modal({ blurring: true, observeChanges: true })
-            .modal("show");
-    });
-
-    // 翻页按钮
-    $("#prev_button").on("click", () => {
-        window.location.href = "/evaluation/" + (parseInt("{{turn}}") - 1);
-    });
-    $("#next_button").on("click", () => {
-        window.location.href = "/evaluation/" + (parseInt("{{turn}}") + 1);
-    });
+$(function () {
+    var cid = null, turn = Number('{{ turn }}'), token=$.cookie('token');
+    function goHome(){ window.location.href='/'; }
+    function openModal(id){ $(id).addClass('is-open'); } function closeModal(id){ $(id).removeClass('is-open'); }
+    if(!token) { goHome(); return; }
+    $.ajax({url:'/api/v1/session/verify',method:'GET',headers:{'X-Session-ID':token}}).done(function(response){ if(!response.success) goHome(); }).fail(goHome);
+    $.ajax({url:'/api/v1/com/info',method:'POST',contentType:'application/json',headers:{'X-Session-ID':token},data:JSON.stringify({turn:turn})}).done(function(response){ if(!response.success){ alert(response.data && response.data.message ? response.data.message : '获取作品信息失败'); goHome(); return; } cid=response.data.cid; $('#image').attr({src:'/uploads/'+response.data.path,alt:'参赛作品 '+response.data.cname}); $('#turn_label').text('WORK · '+String(turn).padStart(2,'0')); $('#image_stage').addClass('has-image'); if (response.data.score !== null && response.data.score !== undefined) $('.score-button').removeClass('is-selected').filter('[data-score="'+response.data.score+'"]').addClass('is-selected'); if (response.data.your_life) $('#interesting_button').addClass('is-active').text('✓ 已推荐到 YourLife'); }).fail(function(){ alert('作品加载失败，请稍后重试。'); goHome(); });
+    $('.score-button').on('click',function(){ var $button=$(this), score=Number($button.data('score')); if(!cid) return; $('.score-button').prop('disabled',true); $.ajax({url:'/api/v1/vote/query',method:'POST',contentType:'application/json',headers:{'X-Session-ID':token},data:JSON.stringify({cid:cid,score:score})}).done(function(response){ if(response.success) $('.score-button').removeClass('is-selected').filter($button).addClass('is-selected'); else alert(response.data && response.data.message || '评分未能保存'); }).fail(function(){ alert('评分未能保存，请检查网络后重试。'); }).always(function(){ $('.score-button').prop('disabled',false); }); });
+    $('#interesting_button').on('click',function(){ var $button=$(this), active=$button.hasClass('is-active'); if(!cid) return; $button.prop('disabled',true); $.ajax({url:'/api/v1/vote/yourlife',method:'POST',contentType:'application/json',headers:{'X-Session-ID':token},data:JSON.stringify({cid:cid,interesting:!active})}).done(function(response){ if(response.success) { $button.toggleClass('is-active',!active).text(active ? '✦ 推荐到 YourLife' : '✓ 已推荐到 YourLife'); } else alert(response.data && response.data.message || '操作未能保存'); }).fail(function(){ alert('操作未能保存，请检查网络后重试。'); }).always(function(){ $button.prop('disabled',false); }); });
+    $('#prev_button').on('click',function(){ if(turn>1) window.location.href='/evaluation/'+(turn-1); }); $('#next_button').on('click',function(){ window.location.href='/evaluation/'+(turn+1); }); $('#back_button').on('click',goHome);
+    $('#help_button').on('click',function(){openModal('#help_modal');}); $('[data-close-help]').on('click',function(){closeModal('#help_modal');}); $('#image').on('click',function(){ if(this.src){ $('#modal_image').attr('src',this.src); openModal('#image_modal'); }}); $('[data-close-image]').on('click',function(){closeModal('#image_modal');}); $('.modal-backdrop').on('click',function(e){if(e.target===this)$(this).removeClass('is-open');}); $(document).on('keydown',function(e){if(e.key==='Escape')$('.modal-backdrop').removeClass('is-open'); if(e.key==='ArrowLeft' && turn>1)window.location.href='/evaluation/'+(turn-1); if(e.key==='ArrowRight')window.location.href='/evaluation/'+(turn+1);});
+});
 </script>
 </body>
 </html>

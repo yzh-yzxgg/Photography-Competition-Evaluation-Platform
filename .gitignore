@@ -29,3 +29,7 @@ build/
 
 # 上传文件（如果不是测试用例）
 uploads/
+
+# 数据库
+*.sqlite3
+*.db

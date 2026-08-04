@@ -397,7 +397,14 @@ def photo_info():
     if not eval_order:
         return jsonify({"code": 404, "success": False, "data": {"message": "No evaluation order found"}})
 
-    eval_order_list = list(map(int, eval_order.split(',')))
+    # SQLite may coerce a one-item evaluation order such as "1" into the
+    # numeric value 1.0 (the public_users table was originally created by
+    # pandas).  Normalize both legacy numeric values and normal CSV strings
+    # before looking up the requested work.
+    try:
+        eval_order_list = [int(float(item)) for item in str(eval_order).split(',')]
+    except (TypeError, ValueError):
+        return jsonify({"code": 500, "success": False, "data": {"message": "Invalid evaluation order"}})
     # 根据turn获取对应的cid
     try:
         turn = int(data.get('turn', 1))
@@ -419,6 +426,18 @@ def photo_info():
         return jsonify({"code": 404, "success": False, "data": {"message": "Photo not found"}})
 
     cname, path = row
+    # Return this evaluator's previous choices as well, so revisiting a work
+    # restores the visible state instead of looking like it was never scored.
+    cursor.execute("SELECT token_list, your_life_token_list FROM user_votes WHERE cid=?", (cid,))
+    vote_row = cursor.fetchone()
+    score = None
+    your_life = False
+    if vote_row:
+        try:
+            score = json.loads(vote_row[0] or "{}").get(token)
+            your_life = bool(json.loads(vote_row[1] or "{}").get(token, False))
+        except (TypeError, json.JSONDecodeError):
+            pass
     conn.commit()
     conn.close()
 
@@ -428,7 +447,9 @@ def photo_info():
         "data": {
             "cid": cid,
             "cname": cname,
-            "path": path
+            "path": path,
+            "score": score,
+            "your_life": your_life
         }
     })
 

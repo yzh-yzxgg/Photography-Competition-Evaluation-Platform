@@ -1,310 +1,62 @@
 <!DOCTYPE html>
-<html lang="zh_cn">
+<html lang="zh-CN">
 <head>
     {% include 'head.html' %}
-    <title>ScoreSYS-摄影比赛评审平台</title>    
-    <script>
-        token=$.cookie('token');
-        $.ajax({
-                url: "/api/v1/session/verify",
-                method: "GET",
-                timeout: 0,
-                headers: {
-                    "Content-Type": "application/json",
-                    "X-Session-ID": token,
-                },
-            }).done((response) => {
-                if (response.success==false){
-                    $("#login_modal")
-                        .modal({
-                            blurring: true,
-                            observeChanges: true,
-                        })
-                        .modal("show");
-                }
-                else {
-                    $("#logout_button").addClass("ui button red");
-                    $("#logout_button").text("退出登录");
-                }
-            });
-            var day=0;
-            
-        var logout = function(){
-            $.ajax({
-                url: "/api/v1/session/verify",
-                method: "GET",
-                headers: {
-                    "Content-Type": "application/json",
-                    "X-Session-ID": $.cookie('token'),
-                },
-            }).done((response) => {
-                if (response.success) {
-                    if (response.data) {
-                        // 如果是注册评审，直接退出登录
-                        $.removeCookie('token');
-                        window.location.href = "/";
-                    } else {
-                        $("#login_modal")
-                        .modal({
-                            blurring: true,
-                            observeChanges: true,
-                        })
-                        .modal("show");
-                        $("#wescore_button").hide();
-                    }
-                }
-            });
-        }
-    </script>
+    <title>ScoreSYS · 摄影比赛评审平台</title>
 </head>
 <body>
-<div class="app">
-    <div class="z-40 w-full mb-3">
-        <div class="max-w-8xl mx-auto text-lg">
-          <div class="py-4 border-b border-slate-900/10 lg:px-1 lg:border-0 dark:border-slate-300/10 mx-4 lg:mx-0">
-            <div class="flex justify-between items-center">
-                <img src="favicon.ico" alt="Logo" width="32" height="32">
-                <div class="" id="logout_button" onclick="logout()">
-                </div>
-            </div>
-          </div>
-        </div>
-    </div>
-    <div class="flex flex-col flex-grow justify-center items-center mb-10">
-        <div class="flex flex-col items-center w-full mb-5" style="width: 90%;">
-            <h1 class="text-3xl font-bold">ScoreSYS—摄影协会比赛评审系统</h1>
-            <h5 class="text-lg" style="color: red;">我们的系统构建公平 愿你们在公平之上诠释美学</h5>
-        </div>
-        <div class="flex flex-col flex-grow items-center mb-4" style="width: 80%;">
-            <table class="ui celled unstackable red table">
-                <thead>
-                  <tr><th>ID</th>
-                  <th>完成情况</th>
-                  <th>日期</th>
-                </tr></thead>
-                <tbody>
-    
-                </tbody>
-            </table>
-        </div>
-        <div class="ui animated fade button red md:w-1/5 text-xl " tabindex="0" id="begin_button">开始评审(开始前务必仔细阅读评审须知)</div>
-            <div class="visible content"></div>
-            <div class="hidden content">
-                $12.99 a month
-            </div>
-        
-        <!-- 登录模态框 (整合公告) -->
-<div class="ui modal tiny" id="login_modal">
-    <div class="header">
-        <h3>输入登录密码</h3>
-    </div>
-    <div class="content">
-        <div class="ui message red">
-            欢迎使用ScoreSYS系统参与摄影比赛线上公开评审<br> 系统100%自研 Designed by 闫子寒 燕睿哲<br>
-            为保证评审质量 公开评审数量锁定限额 我们将对评审结果加权后直接产生照片成绩<br>
-            照片乱序放出且匿名 请保证打分客观 它们是同学们的心血<br>
-            您可以给单张照片打分 最低分1分 最高分5分<br>
-            YourLife按钮适用于YourLife榜单 如果您觉得照片富有生活气息 请按下YourLife 帮助照片冲上榜单<br>
-            如果您是我们的注册评审 请在下方输入我们发放的密码<br>
-            如果您是大众评审 请按下WeScore按钮<br>
-            我们的社团官网:agphotos.art 纳新群：648604775<br>
-            光影摄影协会｜PioneerAsso 保留一切权利<br>
-        </div>
-        <div class="field">
-            <div class="ui form">
-                <div class="field">
-                    <label>登录密码</label>
-                    <input
-                        id="login_password"
-                        placeholder="登录密码"
-                        type="text"
-                    />
-                </div>
-            </div>
-            <div class="flex mt-2">
-                <p class="mb-6" id="upload_warning" style="color: red;"></p>
-            </div>
-            <div class="flex justify-center mt-2">
-                <button class="ui button red w-1/2 md:w-1/5 text-xl" id="login_button">
-                    登录
-                </button>
-            <button class="ui button blue w-1/2 md:w-1/5 text-xl ml-2" id="wescore_button">
-                    WeScore
-                </button>
-                </div>
+<main class="site-shell">
+    <header class="topbar">
+        <a class="brand" href="/" aria-label="ScoreSYS 首页"><span class="brand-mark">S.</span><span>ScoreSYS<small>PHOTOGRAPHY REVIEW</small></span></a>
+        <div class="top-actions"><button class="button button-outline" id="logout_button" type="button" hidden>退出评审</button><button class="button button-primary" id="open_login_button" type="button">进入评审</button></div>
+    </header>
 
+    <section class="hero">
+        <div>
+            <p class="eyebrow">PioneerAsso / Photography Competition</p>
+            <h1>让每一帧光影，<em>被认真看见。</em></h1>
+            <p class="hero-copy">ScoreSYS 为摄影比赛提供匿名、随机的线上评审体验。用你的目光，为真诚的表达留下一个坐标。</p>
+            <button class="button button-accent" id="begin_button" type="button">开始本次评审 <span aria-hidden="true">↗</span></button>
         </div>
-    </div>
-</div>
-<!-- 排行榜展示区域 -->
-<div class="flex flex-col items-center w-full px-4 mb-16">
-    <div class="w-full max-w-5xl mb-10">
-        <h2 class="text-2xl font-bold mb-4 text-center">当前总榜前三</h2>
-        <div class="ui three stackable cards" id="main_ranking"></div>
-    </div>
-    <div class="w-full max-w-5xl">
-        <h2 class="text-2xl font-bold mb-4 text-center">当前YourLife榜前三</h2>
-        <div class="ui three stackable cards" id="yourlife_ranking"></div>
+        <div class="hero-card" aria-label="摄影作品展示"><div class="hero-card-content"><p>Photography is the story I fail to put into words.</p><span>01 / LIGHT STUDY</span></div></div>
+    </section>
+
+    <section class="progress-strip" aria-label="评审状态"><div class="progress-label"><i class="pulse"></i><div><b id="review_state">等待进入评审</b><br><span id="review_detail">登录后将从你的上次进度继续</span></div></div><button class="button button-outline" id="progress_button" type="button">查看进度</button></section>
+
+    <section class="rankings">
+        <div class="ranking-block"><div class="section-heading"><h2>当前总榜</h2><p>PUBLIC SCORE · TOP 3</p></div><div class="ranking-grid" id="main_ranking"><div class="empty-card">正在整理作品排名…</div></div></div>
+        <div class="ranking-block"><div class="section-heading"><h2>YourLife</h2><p>THE MOMENTS THAT FEEL ALIVE</p></div><div class="ranking-grid" id="yourlife_ranking"><div class="empty-card">正在整理生活感瞬间…</div></div></div>
+    </section>
+</main>
+
+<div class="modal-backdrop" id="login_modal" role="dialog" aria-modal="true" aria-labelledby="login_title">
+    <div class="modal"><button class="modal-close" type="button" data-close-modal aria-label="关闭">×</button><p class="eyebrow">WELCOME TO SCORESYS</p><h2 id="login_title">进入评审空间</h2><p class="modal-intro">请选择你的评审身份，所有作品将以随机顺序呈现。</p>
+        <div class="notice">请以作品本身为唯一依据。单张作品可评 1–5 分；“YourLife”用于支持充满生活气息的瞬间。</div>
+        <label class="form-label" for="login_password">认证评委密码</label><input class="text-input" id="login_password" placeholder="输入发放给你的密码" type="password" autocomplete="current-password"><p class="form-error" id="login_error" aria-live="polite"></p>
+        <div class="modal-actions"><button class="button button-primary" id="login_button" type="button">认证登录</button><button class="button button-blue" id="wescore_button" type="button">我是公众评审</button></div>
     </div>
 </div>
 
-    <div class="flex flex-col items-end absolute bottom-0 w-full">
-        {% include 'footer.html' %}
-    </div>
-</div>
-</div>
 <script>
-    $("#begin_button").removeClass("loading");
-    $.ajax({
-        url: "/api/v1/com/list",
-        method: "GET",
-        timeout: 0,
-        headers: {
-            "Content-Type": "application/json",
-            "X-Session-ID": token,
-        },
-        }).done((response) => {
-            console.log(response);
-            for (var i=0; i<response.data.length; i++){
-                var row = response.data[i];
-                var tr = $("<tr></tr>");
-                tr.append($("<td></td>").text(row[0]));
-                tr.append($("<td></td>").text(row[1]+"/50"));
-                tr.append($("<td></td>").text("day"+day));
-                $("tbody").append(tr);
-            }
-        });
-    $.ajax({
-        url: "/api/v1/com/current-turn",
-        method: "GET",
-        timeout: 0,
-        headers: {
-            "Content-Type": "application/json",
-            "X-Session-ID": $.cookie('token'),
-        },
-        }).done((response) => {
-            if (response.success){
-                $("#begin_button").on("click", function() {
-                    window.location.href = "/evaluation/"+(response.data.turn);
-                });
-            }
-        });
+$(function () {
+    var token = $.cookie('token');
+    var currentTurn = null;
+    function openModal() { $('#login_modal').addClass('is-open'); $('#login_password').trigger('focus'); }
+    function closeModal() { $('#login_modal').removeClass('is-open'); }
+    function setLoggedIn() { $('#logout_button').prop('hidden', false); $('#open_login_button').prop('hidden', true); $('#review_state').text('评审身份已确认'); $('#review_detail').text('点击“开始本次评审”继续你的评审顺序'); }
+    function getTurn() { $.ajax({ url:'/api/v1/com/current-turn', method:'GET', headers:{'X-Session-ID':$.cookie('token')} }).done(function(response) { if (response.success) { currentTurn=response.data.turn; $('#review_state').text('评审进行中 · 第 ' + currentTurn + ' 张'); $('#review_detail').text('系统将保留你的评分进度'); } }); }
+    function startReview() { if (currentTurn) { window.location.href='/evaluation/' + currentTurn; } else { openModal(); } }
+    function renderRankings(target, data, label) { var $target=$(target).empty(); if (!data || !data.length) { $target.append('<div class="empty-card">排名将随投票实时更新</div>'); return; } data.forEach(function(item,index) { var score = typeof item.score === 'number' ? item.score : 0; $target.append('<article class="rank-card"><img src="/' + item.image_url.replace(/^\//,'') + '" alt="' + label + '第 ' + (index+1) + ' 名"><div class="rank-meta"><span class="rank-num">NO. 0' + (index+1) + '</span><strong class="rank-score">' + (label === '总榜' ? Math.round(score * 100) : score) + '</strong></div></article>'); }); }
 
-    $("#login_button")[0].addEventListener("click", () => {
-        console.log("login_button clicked");
-        password = $("#login_password").val();
-        console.log(password);
-        $.ajax({
-                url: "/api/v1/session/verify",
-                method: "GET",
-                timeout: 0,
-                headers: {
-                    "Content-Type": "application/json",
-                    "X-Session-ID": password,
-                },
-            }).done((response) => {
-                console.log(response);
-                if (response.success){
-                    $.cookie("token", password);
-                    $("#login_modal")
-                        .modal({
-                            blurring: true,
-                            observeChanges: true,
-                        })
-                        .modal("hide");
-                    $("#logout_button").addClass("ui button red");
-                    $("#logout_button").text("退出登录");
-                    location.reload();
-                }
-            });
-    });
-    // WeScore按钮 for 大众评审
-    $("#wescore_button")[0].addEventListener("click", () => {
-        console.log("WeScore clicked");
-        // 预留Session关键词 默认public
-        password = "public";
-        $.ajax({
-                url: "/api/v1/session/public/login",
-                method: "GET",
-                timeout: 0,
-                headers: {
-                    "Content-Type": "application/json",
-                    "X-Session-ID": $.cookie('session') || "public",
-                },
-            }).done((response) => {
-                console.log(response);
-                if (response.success){
-                    password = response.data.token;
-                    console.log("WeScore session token:", password);
-                    $.cookie("token", password);
-                    $("#login_modal")
-                        .modal({
-                            blurring: true,
-                            observeChanges: true,
-                        })
-                        .modal("hide");
-                    $("#logout_button").addClass("ui button red");
-                    $("#logout_button").text("切换评审模式");
-                    location.reload();
-                }
-            });
-    });
-    // 拉取主榜单前三照片
-$.ajax({
-    url: "/api/v1/rank/main_top3",
-    method: "GET",
-    timeout: 0,
-    headers: {
-        "Content-Type": "application/json",
-    },
-}).done((response) => {
-    if (response.success) {
-        for (const item of response.data) {
-            const card = `
-            <div class="card">
-                <div class="image">
-                    <img src="${item.image_url}" alt="WeScore总榜">
-                </div>
-                <div class="content">
-                    <div class="header">作品指数: ${item.score * 100}</div>
-                </div>
-            </div>`;
-            $("#main_ranking").append(card);
-        }
-    }
+    if (token) { $.ajax({ url:'/api/v1/session/verify', method:'GET', headers:{'X-Session-ID':token} }).done(function(response) { if (response.success) { setLoggedIn(); getTurn(); } else { openModal(); } }).fail(openModal); } else { openModal(); }
+    $('#open_login_button,#progress_button').on('click', openModal); $('#begin_button').on('click', startReview); $('#logout_button').on('click', function(){ $.removeCookie('token'); currentTurn=null; $(this).prop('hidden',true); $('#open_login_button').prop('hidden',false); $('#review_state').text('等待进入评审'); $('#review_detail').text('登录后将从你的上次进度继续'); openModal(); });
+    $('[data-close-modal]').on('click', closeModal); $('#login_modal').on('click', function(e){ if(e.target === this) closeModal(); }); $(document).on('keydown', function(e){ if(e.key === 'Escape') closeModal(); });
+    $('#login_button').on('click', function(){ var password=$('#login_password').val().trim(); if(!password) { $('#login_error').text('请输入认证评委密码。'); return; } $.ajax({url:'/api/v1/session/verify',method:'GET',headers:{'X-Session-ID':password}}).done(function(response){ if(response.success) { $.cookie('token',password); closeModal(); location.reload(); } else $('#login_error').text('密码无效，请确认后重试。'); }).fail(function(){ $('#login_error').text('暂时无法验证，请稍后重试。'); }); });
+    $('#login_password').on('keydown', function(e){ if(e.key === 'Enter') $('#login_button').click(); });
+    $('#wescore_button').on('click', function(){ var $button=$(this).prop('disabled',true).text('正在进入…'); $.ajax({url:'/api/v1/session/public/login',method:'GET'}).done(function(response){ if(response.success) { $.cookie('token',response.data.token); closeModal(); location.reload(); } else $('#login_error').text('暂时无法创建公众评审身份。'); }).fail(function(){ $('#login_error').text('暂时无法连接服务，请稍后重试。'); }).always(function(){ $button.prop('disabled',false).text('我是公众评审'); }); });
+    $.get('/api/v1/rank/main_top3').done(function(response){ if(response.success) renderRankings('#main_ranking',response.data,'总榜'); });
+    $.get('/api/v1/rank/yourlife_top3').done(function(response){ if(response.success) renderRankings('#yourlife_ranking',response.data,'YourLife'); });
 });
-
-// 拉取 YourLife 榜前三照片
-$.ajax({
-    url: "/api/v1/rank/yourlife_top3",
-    method: "GET",
-    timeout:0,
-    headers: {
-        "Content-Type": "application/json",
-    },
-}).done((response) => {
-    if (response.success) {
-        for (const item of response.data) {
-            const card = `
-            <div class="card">
-                <div class="image">
-                    <img src="${item.image_url}" alt="YourLife榜单">
-                </div>
-                <div class="content">
-                    <div class="header">YourLife指数: ${item.score}</div>
-                </div>
-            </div>`;
-            $("#yourlife_ranking").append(card);
-        }
-    }
-});
-
-
-    $("#begin_button")[0].addEventListener("click", () => {
-        $("#begin_button").addClass("loading");
-        window.location.href = "/evaluation";
-        $("#begin_button").removeClass("loading");
-    });
 </script>
 </body>
 </html>
