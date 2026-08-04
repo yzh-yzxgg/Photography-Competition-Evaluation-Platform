@@ -457,6 +457,10 @@ def photo_info():
 def favicon():
     return send_file("static/favicon/favicon.ico", mimetype="image/vnd.microsoft.icon")
 
+@app.route("/favicon.svg")
+def favicon_svg():
+    return send_file("favicon.svg", mimetype="image/svg+xml")
+
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):
     return send_file("uploads/"+filename, mimetype="image/vnd.microsoft.icon")
