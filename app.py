@@ -92,7 +92,26 @@ def session_verify():
             "data": {"message": "Invalid session ID"},
         }
     
-#大众登录
+# 认证评委登录
+@app.route("/api/v1/session/certified/login", methods=["POST"])
+def certified_login():
+    """Exchange an issued judge password for its existing session token."""
+    data = request.get_json(silent=True) or {}
+    password = str(data.get("password", "")).strip()
+    if not password:
+        return jsonify({"code": 400, "success": False, "data": {"message": "Password required"}})
+
+    conn = sqlite3.connect(database)
+    cursor = conn.cursor()
+    cursor.execute("SELECT token FROM certified_users WHERE password = ?", (password,))
+    row = cursor.fetchone()
+    conn.close()
+
+    if not row:
+        return jsonify({"code": 401, "success": False, "data": {"message": "Invalid password"}})
+
+    return jsonify({"code": 200, "success": True, "data": {"token": row[0]}})
+
 @app.route("/api/v1/session/public/login", methods=["GET"])
 def public_login():
     # 生成一个新的 token
