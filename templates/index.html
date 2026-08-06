@@ -7,8 +7,8 @@
 <body>
 <main class="site-shell">
     <header class="topbar">
-        <a class="brand" href="/" aria-label="ScoreSYS 首页"><span class="brand-mark">S.</span><span>ScoreSYS<small>PHOTOGRAPHY REVIEW</small></span></a>
-        <div class="top-actions"><button class="button button-outline" id="logout_button" type="button" hidden>退出评审</button><button class="button button-primary" id="open_login_button" type="button">进入评审</button></div>
+        <a class="brand" href="/" aria-label="ScoreSYS 首页"><span class="brand-mark liquid-glass">S.</span><span>ScoreSYS<small>PHOTOGRAPHY REVIEW</small></span></a>
+        <div class="top-actions"><button class="button button-outline liquid-glass" id="logout_button" type="button" hidden>退出评审</button><button class="button button-primary" id="open_login_button" type="button">进入评审</button></div>
     </header>
 
     <section class="hero">
@@ -18,10 +18,10 @@
             <p class="hero-copy">ScoreSYS 为摄影比赛提供匿名、随机的线上评审体验。用你的目光，为真诚的表达留下一个坐标。</p>
             <button class="button button-accent" id="begin_button" type="button">开始本次评审 <span aria-hidden="true">↗</span></button>
         </div>
-        <div class="hero-card" aria-label="摄影作品展示"><div class="hero-card-content"><p>Photography is the story I fail to put into words.</p><span>01 / LIGHT STUDY</span></div></div>
+        <div class="hero-card liquid-glass" aria-label="摄影作品展示"><div class="hero-card-content"><p>Let There Be Light</p><span>01 / LIGHT STUDY</span></div></div>
     </section>
 
-    <section class="progress-strip" aria-label="评审状态"><div class="progress-label"><i class="pulse"></i><div><b id="review_state">等待进入评审</b><br><span id="review_detail">登录后将从你的上次进度继续</span></div></div><button class="button button-outline" id="progress_button" type="button">查看进度</button></section>
+    <section class="progress-strip liquid-glass" aria-label="评审状态"><div class="progress-label"><i class="pulse"></i><div><b id="review_state">等待进入评审</b><br><span id="review_detail">登录后将从你的上次进度继续</span></div></div><button class="button button-outline liquid-glass" id="progress_button" type="button">查看进度</button></section>
 
     <section class="rankings">
         <div class="ranking-block"><div class="section-heading"><h2>当前总榜</h2><p>PUBLIC SCORE · TOP 3</p></div><div class="ranking-grid" id="main_ranking"><div class="empty-card"><span class="loading-stack"><i class="favicon-loader"></i>正在整理作品排名</span></div></div></div>
@@ -40,20 +40,20 @@
 <script>
 $(function () {
     var token = $.cookie('token');
-    var currentTurn = null;
+    var currentTurn = null, unlockedTurns = 0;
     function openModal() { $('#login_modal').addClass('is-open'); $('#login_password').trigger('focus'); }
     function closeModal() { $('#login_modal').removeClass('is-open'); }
     function setLoggedIn() { $('#logout_button').prop('hidden', false); $('#open_login_button').prop('hidden', true); $('#review_state').text('评审身份已确认'); $('#review_detail').text('点击“开始本次评审”继续你的评审顺序'); }
-    function getTurn() { $.ajax({ url:'/api/v1/com/current-turn', method:'GET', headers:{'X-Session-ID':$.cookie('token')} }).done(function(response) { if (response.success) { currentTurn=response.data.turn; $('#review_state').text('评审进行中 · 第 ' + currentTurn + ' 张'); $('#review_detail').text('系统将保留你的评分进度'); } }); }
-    function startReview() { if (currentTurn) { window.location.href='/evaluation/' + currentTurn; } else { openModal(); } }
-    function renderRankings(target, data, label) { var $target=$(target).empty(); if (!data || !data.length) { $target.append('<div class="empty-card">排名将随投票实时更新</div>'); return; } data.forEach(function(item,index) { var score = typeof item.score === 'number' ? item.score : 0; $target.append('<article class="rank-card"><img src="/' + item.image_url.replace(/^\//,'') + '" alt="' + label + '第 ' + (index+1) + ' 名"><div class="rank-meta"><span class="rank-num">NO. 0' + (index+1) + '</span><strong class="rank-score">' + (label === '总榜' ? Math.round(score * 100) : score) + '</strong></div></article>'); }); }
+    function getTurn() { $.ajax({ url:'/api/v1/com/current-turn', method:'GET', headers:{'X-Session-ID':$.cookie('token')} }).done(function(response) { if (response.success) { currentTurn=response.data.turn; unlockedTurns=response.data.unlocked_turns; if (!unlockedTurns) { $('#review_state').text('正式评审将于 8 月 7 日开启'); $('#review_detail').text('认证评委每日开放 ' + response.data.daily_limit + ' 张作品'); } else { $('#review_state').text('评审进行中 · 第 ' + currentTurn + ' 张'); $('#review_detail').text('当前已开放 ' + unlockedTurns + ' 张作品 · 每日新增 ' + response.data.daily_limit + ' 张'); } } }); }
+    function startReview() { if (currentTurn && unlockedTurns) { window.location.href='/evaluation/' + currentTurn; } else if (currentTurn) { alert('正式评审将于 8 月 7 日开启。'); } else { openModal(); } }
+    function renderRankings(target, data, label) { var $target=$(target).empty(); if (!data || !data.length) { $target.append('<div class="empty-card">排名将随投票实时更新</div>'); return; } data.forEach(function(item,index) { var score = typeof item.score === 'number' ? item.score : 0; $target.append('<article class="rank-card liquid-glass"><img loading="lazy" src="' + item.image_url + '" alt="' + label + '第 ' + (index+1) + ' 名"><div class="rank-meta"><span class="rank-num">NO. 0' + (index+1) + '</span><strong class="rank-score">' + (label === '总榜' ? Math.round(score * 100) : score) + '</strong></div></article>'); }); }
 
     if (token) { $.ajax({ url:'/api/v1/session/verify', method:'GET', headers:{'X-Session-ID':token} }).done(function(response) { if (response.success) { setLoggedIn(); getTurn(); } else { openModal(); } }).fail(openModal); } else { openModal(); }
-    $('#open_login_button,#progress_button').on('click', openModal); $('#begin_button').on('click', startReview); $('#logout_button').on('click', function(){ $.removeCookie('token'); currentTurn=null; $(this).prop('hidden',true); $('#open_login_button').prop('hidden',false); $('#review_state').text('等待进入评审'); $('#review_detail').text('登录后将从你的上次进度继续'); openModal(); });
+    $('#open_login_button,#progress_button').on('click', openModal); $('#begin_button').on('click', startReview); $('#logout_button').on('click', function(){ $.removeCookie('token',{path:'/'}); currentTurn=null; $(this).prop('hidden',true); $('#open_login_button').prop('hidden',false); $('#review_state').text('等待进入评审'); $('#review_detail').text('登录后将从你的上次进度继续'); openModal(); });
     $('[data-close-modal]').on('click', closeModal); $('#login_modal').on('click', function(e){ if(e.target === this) closeModal(); }); $(document).on('keydown', function(e){ if(e.key === 'Escape') closeModal(); });
-    $('#login_button').on('click', function(){ var password=$('#login_password').val().trim(), $button=$(this); if(!password) { $('#login_error').text('请输入认证评委密码。'); return; } $button.addClass('is-loading').prop('disabled',true); $.ajax({url:'/api/v1/session/certified/login',method:'POST',contentType:'application/json',data:JSON.stringify({password:password})}).done(function(response){ if(response.success) { $.cookie('token',response.data.token); closeModal(); location.reload(); } else $('#login_error').text('密码无效，请确认后重试。'); }).fail(function(){ $('#login_error').text('暂时无法验证，请稍后重试。'); }).always(function(){ $button.removeClass('is-loading').prop('disabled',false); }); });
+    $('#login_button').on('click', function(){ var password=$('#login_password').val().trim(), $button=$(this); if(!password) { $('#login_error').text('请输入认证评委密码。'); return; } $button.addClass('is-loading').prop('disabled',true); $.ajax({url:'/api/v1/session/certified/login',method:'POST',contentType:'application/json',data:JSON.stringify({password:password})}).done(function(response){ if(response.success) { $.cookie('token',response.data.token,{expires:365,path:'/'}); closeModal(); location.reload(); } else $('#login_error').text('密码无效，请确认后重试。'); }).fail(function(){ $('#login_error').text('暂时无法验证，请稍后重试。'); }).always(function(){ $button.removeClass('is-loading').prop('disabled',false); }); });
     $('#login_password').on('keydown', function(e){ if(e.key === 'Enter') $('#login_button').click(); });
-    $('#wescore_button').on('click', function(){ var $button=$(this).addClass('is-loading').prop('disabled',true); $.ajax({url:'/api/v1/session/public/login',method:'GET'}).done(function(response){ if(response.success) { $.cookie('token',response.data.token); closeModal(); location.reload(); } else $('#login_error').text('暂时无法创建公众评审身份。'); }).fail(function(){ $('#login_error').text('暂时无法连接服务，请稍后重试。'); }).always(function(){ $button.removeClass('is-loading').prop('disabled',false); }); });
+    $('#wescore_button').on('click', function(){ var $button=$(this).addClass('is-loading').prop('disabled',true); $.ajax({url:'/api/v1/session/public/login',method:'GET'}).done(function(response){ if(response.success) { $.cookie('token',response.data.token,{expires:365,path:'/'}); closeModal(); location.reload(); } else $('#login_error').text('暂时无法创建公众评审身份。'); }).fail(function(){ $('#login_error').text('暂时无法连接服务，请稍后重试。'); }).always(function(){ $button.removeClass('is-loading').prop('disabled',false); }); });
     $.get('/api/v1/rank/main_top3').done(function(response){ if(response.success) renderRankings('#main_ranking',response.data,'总榜'); });
     $.get('/api/v1/rank/yourlife_top3').done(function(response){ if(response.success) renderRankings('#yourlife_ranking',response.data,'YourLife'); });
 });

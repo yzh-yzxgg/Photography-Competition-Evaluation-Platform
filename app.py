@@ -5,13 +5,16 @@ import os
 import random
 import secrets
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 from flask import Flask, request,render_template,send_file, jsonify
+from image_variants import ensure_variant, original_path
 
 app = Flask(__name__)
 database = "database.db"
 
-begin_day=(2025,7,26)
+EVALUATION_START_DATE = date(2026, 8, 7)
+CERTIFIED_DAILY_LIMIT = 50
+PUBLIC_DAILY_LIMIT = 30
 
 # 初始化会话和用户信息
 certified_user_token = []
@@ -60,8 +63,48 @@ def update_session():
 
 
 def get_day():
-    begin_date = datetime(*begin_day)
-    return (datetime.now() - begin_date).days
+    """Return the zero-based number of days since the official start date."""
+    return (date.today() - EVALUATION_START_DATE).days
+
+
+def parse_eval_order(eval_order):
+    """Normalize CSV and legacy SQLite numeric evaluation orders."""
+    return [int(float(item)) for item in str(eval_order).split(',')]
+
+
+def get_evaluation_access(token, is_certified):
+    eval_order = certified_user_eval_order.get(token) if is_certified else public_user_eval_order.get(token)
+    if not eval_order:
+        raise ValueError("No evaluation order found")
+    eval_order_list = parse_eval_order(eval_order)
+    daily_limit = CERTIFIED_DAILY_LIMIT if is_certified else PUBLIC_DAILY_LIMIT
+    days_since_start = get_day()
+    unlocked_turns = 0 if days_since_start < 0 else min(len(eval_order_list), (days_since_start + 1) * daily_limit)
+    return {
+        "eval_order": eval_order_list,
+        "daily_limit": daily_limit,
+        "unlocked_turns": unlocked_turns,
+        "days_since_start": days_since_start,
+    }
+
+
+def validate_current_vote(conn, token, is_certified, cid):
+    """Allow votes only for the currently opened work within the daily window."""
+    try:
+        access = get_evaluation_access(token, is_certified)
+    except (TypeError, ValueError):
+        return False, 500, "Invalid evaluation order"
+    if access["unlocked_turns"] == 0:
+        return False, 403, "评审将于 2026 年 8 月 7 日开始"
+
+    table = "certified_users" if is_certified else "public_users"
+    row = conn.execute(f"SELECT current_turn FROM {table} WHERE token = ?", (token,)).fetchone()
+    current_turn = int(float(row[0])) if row and row[0] is not None else 0
+    if current_turn < 1 or current_turn > access["unlocked_turns"]:
+        return False, 429, f"今日可评作品已达上限（每天 {access['daily_limit']} 张）"
+    if access["eval_order"][current_turn - 1] != int(cid):
+        return False, 409, "只能为当前正在评审的作品投票"
+    return True, 200, ""
 
 #用户鉴权
 @app.route("/api/v1/session/verify", methods=["GET"])
@@ -71,8 +114,6 @@ def session_verify():
         token = request.headers["X-Session-ID"]
     except KeyError:
         return {"code": 400, "success": False, "data": {"message": "Invalid request"}}
-    print (f"Received token: {token}")
-    print (f"Certified user tokens: {public_user_token}")
     if token in certified_user_token.values():
         return {
             "code": 200,
@@ -148,7 +189,6 @@ def day():
 def vote_vote():
     update_session()
     token = request.headers.get("X-Session-ID")
-    print(f"Received token: {token}")
     if not token:
         return jsonify({"code": 401, "success": False, "data": {"message": "Invalid session ID"}})
     if token not in certified_user_token.values() and token not in public_user_token.values():
@@ -164,19 +204,23 @@ def vote_vote():
     if not (1 <= score <= 5):
         return jsonify({"code": 400, "success": False, "data": {"message": "score must be 1-5"}})
 
+    is_certified = token in certified_user_token.values()
     conn = sqlite3.connect(database)
     cursor = conn.cursor()
+    vote_allowed, error_code, error_message = validate_current_vote(conn, token, is_certified, cid)
+    if not vote_allowed:
+        conn.close()
+        return jsonify({"code": error_code, "success": False, "data": {"message": error_message}}), error_code
 
     # 获取当前cid投票token_list
     row = conn.execute("SELECT token_list FROM user_votes WHERE cid = ?", (cid,)).fetchone()
     token_list = json.loads(row[0]) if row and row[0] else {}  # 检查 row[0] 是否非空
     pre_score = token_list[token] if token in token_list else 0
     token_list[token] = score
-    print(pre_score)
     # 更新投票记录
     conn.execute("UPDATE user_votes SET token_list = ? WHERE cid = ?", (json.dumps(token_list), cid))
     # 更新照片分数和投票次数
-    if token in certified_user_token.values():
+    if is_certified:
         if pre_score == 0:
             cursor.execute("UPDATE photo_scores_certified_users SET total_score = total_score + ?, vote_count = vote_count + 1 WHERE cid = ?", (score - pre_score, cid))
         else:
@@ -196,7 +240,6 @@ def vote_vote():
 def vote_yourlife():
     update_session()
     token = request.headers.get("X-Session-ID")
-    print(f"Received token: {token}")
     if not token:
         return jsonify({"code": 401, "success": False, "data": {"message": "Invalid session ID"}})
     if token not in certified_user_token.values() and token not in public_user_token.values():
@@ -209,19 +252,23 @@ def vote_yourlife():
     if cid is None:
         return jsonify({"code": 400, "success": False, "data": {"message": "cid required"}})
 
+    is_certified = token in certified_user_token.values()
     conn = sqlite3.connect(database)
     cursor = conn.cursor()
+    vote_allowed, error_code, error_message = validate_current_vote(conn, token, is_certified, cid)
+    if not vote_allowed:
+        conn.close()
+        return jsonify({"code": error_code, "success": False, "data": {"message": error_message}}), error_code
 
     # 获取当前cid投票your_life_token_list
     row = conn.execute("SELECT your_life_token_list FROM user_votes WHERE cid = ?", (cid,)).fetchone()
     your_life_token_list = json.loads(row[0]) if row and row[0] else {}  # 检查 row[0] 是否非空
     pre_your_life = your_life_token_list.get(token, False)
     your_life_token_list[token] = your_life
-    print(pre_your_life)
     # 更新投票记录
     conn.execute("UPDATE user_votes SET your_life_token_list = ? WHERE cid = ?", (json.dumps(your_life_token_list), cid))
     # 更新照片的YourLife投票状态
-    if token in certified_user_token.values():
+    if is_certified:
         if your_life:
             if not pre_your_life:
                 cursor.execute("UPDATE photo_scores_certified_users SET your_life = your_life + 1 WHERE cid = ?", (cid,))
@@ -301,7 +348,7 @@ def get_main_top3():
             image_path = path_result[0] if path_result else ""
 
             top3.append({
-                "image_url": f"uploads/{image_path}",
+                "image_url": f"/media/thumbnail/{image_path}",
                 "score": round(score, 2)
             })
 
@@ -346,7 +393,7 @@ def get_yourlife_top3():
             image_path = path_result[0] if path_result else ""
 
             top3.append({
-                "image_url": f"uploads/{image_path}",
+                "image_url": f"/media/thumbnail/{image_path}",
                 "score": round(score, 2)
             })
 
@@ -374,10 +421,16 @@ def current_turn():
     if token not in certified_user_token.values() and token not in public_user_token.values():
         return jsonify({"code": 401, "success": False, "data": {"message": "Invalid session ID"}})
 
-    # 获取评审顺序
+    is_certified = token in certified_user_token.values()
+    try:
+        access = get_evaluation_access(token, is_certified)
+    except (TypeError, ValueError):
+        return jsonify({"code": 500, "success": False, "data": {"message": "Invalid evaluation order"}})
+
+    # 获取当前评审进度
     conn = sqlite3.connect('database.db')
     cursor = conn.cursor()
-    if token in certified_user_token.values():
+    if is_certified:
         cursor.execute("SELECT current_turn FROM certified_users WHERE token=?", (token,))
         result = cursor.fetchone()
         if result:
@@ -393,7 +446,16 @@ def current_turn():
             return jsonify({"code": 404, "success": False, "data": {"message": "Current turn not found"}})
 
     conn.close()
-    return jsonify({"code": 200, "success": True, "data": {"turn": current_turn}})
+    return jsonify({
+        "code": 200,
+        "success": True,
+        "data": {
+            "turn": int(float(current_turn)),
+            "daily_limit": access["daily_limit"],
+            "unlocked_turns": access["unlocked_turns"],
+            "starts_on": EVALUATION_START_DATE.isoformat(),
+        },
+    })
 
 # 给出用户评审turn查询图片信息info
 @app.route("/api/v1/com/info", methods=["POST"])
@@ -407,33 +469,29 @@ def photo_info():
     if token not in certified_user_token.values() and token not in public_user_token.values():
         return jsonify({"code": 401, "success": False, "data": {"message": "Invalid session ID"}})
 
-    # 获取评审顺序
-    if token in certified_user_token.values():
-        eval_order = certified_user_eval_order.get(token, [])
-    else:
-        eval_order = public_user_eval_order.get(token, [])
-
-    if not eval_order:
-        return jsonify({"code": 404, "success": False, "data": {"message": "No evaluation order found"}})
-
-    # SQLite may coerce a one-item evaluation order such as "1" into the
-    # numeric value 1.0 (the public_users table was originally created by
-    # pandas).  Normalize both legacy numeric values and normal CSV strings
-    # before looking up the requested work.
+    is_certified = token in certified_user_token.values()
     try:
-        eval_order_list = [int(float(item)) for item in str(eval_order).split(',')]
+        access = get_evaluation_access(token, is_certified)
     except (TypeError, ValueError):
         return jsonify({"code": 500, "success": False, "data": {"message": "Invalid evaluation order"}})
-    # 根据turn获取对应的cid
+
     try:
         turn = int(data.get('turn', 1))
-        cid = eval_order_list[turn - 1]  # turn从1开始
     except (ValueError, IndexError):
         return jsonify({"code": 400, "success": False, "data": {"message": "Invalid turn"}})
+    if access["unlocked_turns"] == 0:
+        return jsonify({"code": 403, "success": False, "data": {"message": "评审将于 2026 年 8 月 7 日开始"}}), 403
+    if turn < 1 or turn > access["unlocked_turns"]:
+        return jsonify({
+            "code": 429,
+            "success": False,
+            "data": {"message": f"今日可评作品已达上限（每天 {access['daily_limit']} 张）", "unlocked_turns": access["unlocked_turns"]},
+        }), 429
+    cid = access["eval_order"][turn - 1]
 
     conn = sqlite3.connect(database)
     cursor = conn.cursor()
-    if token in certified_user_token.values():
+    if is_certified:
         cursor.execute("UPDATE certified_users SET current_turn = ? WHERE token = ?", (turn, token))
     else:
         cursor.execute("UPDATE public_users SET current_turn = ? WHERE token = ?", (turn, token))
@@ -467,6 +525,8 @@ def photo_info():
             "cid": cid,
             "cname": cname,
             "path": path,
+            "image_url": f"/media/review/{path}",
+            "original_image_url": f"/uploads/{path}",
             "score": score,
             "your_life": your_life
         }
@@ -480,9 +540,29 @@ def favicon():
 def favicon_svg():
     return send_file("favicon.svg", mimetype="image/svg+xml")
 
+@app.route("/index.avif")
+def homepage_image():
+    return send_file("index.avif", mimetype="image/avif", conditional=True, max_age=31536000)
+
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):
-    return send_file("uploads/"+filename, mimetype="image/vnd.microsoft.icon")
+    try:
+        path = original_path(filename)
+    except ValueError:
+        return jsonify({"code": 400, "success": False, "data": {"message": "Invalid image path"}}), 400
+    if not path.is_file():
+        return jsonify({"code": 404, "success": False, "data": {"message": "Photo not found"}}), 404
+    return send_file(path, conditional=True, max_age=31536000)
+
+@app.route('/media/<variant>/<filename>')
+def optimized_image(variant, filename):
+    if variant not in ("review", "thumbnail"):
+        return jsonify({"code": 404, "success": False, "data": {"message": "Image variant not found"}}), 404
+    try:
+        path = ensure_variant(filename, variant)
+    except (FileNotFoundError, OSError, ValueError):
+        return jsonify({"code": 404, "success": False, "data": {"message": "Photo not found"}}), 404
+    return send_file(path, mimetype="image/webp", conditional=True, max_age=31536000)
 
 
 @app.route("/")

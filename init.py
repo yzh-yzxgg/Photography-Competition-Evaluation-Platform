@@ -3,6 +3,7 @@ import pandas as pd
 import random
 import hashlib
 import sqlite3  # 用于数据库操作
+from image_variants import build_variants
 
 # 定义文件夹路径
 folder_path = './uploads'
@@ -13,6 +14,9 @@ file_list = os.listdir(folder_path)
 # 过滤出图片文件（假设是常见的图片格式）
 image_extensions = ('.jpg', '.jpeg', '.png', '.bmp', '.gif', '.tiff')
 image_files = [f for f in file_list if f.lower().endswith(image_extensions)]
+
+# 保留原图，同时预生成评审高清版和首页缩略图，避免首次评审时下载大图。
+build_variants(image_files)
 
 # 创建DataFrame来存储图片信息
 data = {
