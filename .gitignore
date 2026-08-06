@@ -1,5 +1,6 @@
 # Python 缓存
 __pycache__/
+database.db
 *.pyc
 *.pyo
 *.pyd
