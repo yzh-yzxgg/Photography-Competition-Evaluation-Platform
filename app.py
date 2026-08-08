@@ -320,36 +320,28 @@ def photo_score(cid):
         }
     })
 
-# 查询总榜前三 API：认证评委均分占 2/3，公众评审均分占 1/3。
+# 查询总榜前三 API：展示大众评审热度。
 @app.route("/api/v1/rank/main_top3", methods=["GET"])
 def get_main_top3():
     try:
         conn = sqlite3.connect('database.db')
         cursor = conn.cursor()
 
-        # 使用均分而不是总分，避免评审人数多的一方天然占优势。
         cursor.execute("""
-            SELECT
-                uploads.cid,
-                uploads.path,
-                COALESCE(certified.total_score * 1.0 / NULLIF(certified.vote_count, 0), 0) AS certified_average,
-                COALESCE(public.total_score * 1.0 / NULLIF(public.vote_count, 0), 0) AS public_average
-            FROM uploads
-            LEFT JOIN photo_scores_certified_users AS certified ON certified.cid = uploads.cid
-            LEFT JOIN photo_scores_public_users AS public ON public.cid = uploads.cid
-            ORDER BY (COALESCE(certified.total_score * 1.0 / NULLIF(certified.vote_count, 0), 0) * 2.0 / 3.0
-                    + COALESCE(public.total_score * 1.0 / NULLIF(public.vote_count, 0), 0) * 1.0 / 3.0) DESC,
-                uploads.cid ASC
+            SELECT uploads.cid, uploads.path, public.total_score
+            FROM photo_scores_public_users AS public
+            JOIN uploads ON uploads.cid = public.cid
+            WHERE public.total_score IS NOT NULL
+            ORDER BY public.total_score DESC, uploads.cid ASC
             LIMIT 3;
         """)
         results = cursor.fetchall()
 
         top3 = []
-        for cid, image_path, certified_average, public_average in results:
-            score = certified_average * (2 / 3) + public_average * (1 / 3)
+        for cid, image_path, score in results:
             top3.append({
                 "image_url": f"/media/thumbnail/{image_path}",
-                "score": round(score, 3)
+                "score": round(score, 2)
             })
 
         conn.close()
@@ -367,23 +359,19 @@ def get_main_top3():
         })
 
 
-# 查询 YourLife 榜单前三：汇总认证评委和公众评审的推荐次数。
+# 查询 YourLife 榜单前三：展示大众评审热度。
 @app.route("/api/v1/rank/yourlife_top3", methods=["GET"])
 def get_yourlife_top3():
     try:
         conn = sqlite3.connect('database.db')
         cursor = conn.cursor()
 
-        # 每位评审对一张作品最多贡献一次推荐，因此直接合计次数。
         cursor.execute("""
-            SELECT
-                uploads.cid,
-                uploads.path,
-                COALESCE(certified.your_life, 0) + COALESCE(public.your_life, 0) AS recommendations
-            FROM uploads
-            LEFT JOIN photo_scores_certified_users AS certified ON certified.cid = uploads.cid
-            LEFT JOIN photo_scores_public_users AS public ON public.cid = uploads.cid
-            ORDER BY recommendations DESC, uploads.cid ASC
+            SELECT uploads.cid, uploads.path, public.your_life
+            FROM photo_scores_public_users AS public
+            JOIN uploads ON uploads.cid = public.cid
+            WHERE public.your_life IS NOT NULL
+            ORDER BY public.your_life DESC, uploads.cid ASC
             LIMIT 3;
         """)
         results = cursor.fetchall()
@@ -392,7 +380,7 @@ def get_yourlife_top3():
         for cid, image_path, score in results:
             top3.append({
                 "image_url": f"/media/thumbnail/{image_path}",
-                "score": int(score)
+                "score": round(score, 2)
             })
 
         conn.close()
