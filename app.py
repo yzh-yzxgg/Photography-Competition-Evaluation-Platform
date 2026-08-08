@@ -12,7 +12,7 @@ from image_variants import ensure_variant, original_path
 app = Flask(__name__)
 database = "database.db"
 
-EVALUATION_START_DATE = date(2026, 8, 7)
+EVALUATION_START_DATE = date(2026, 8, 8)
 CERTIFIED_DAILY_LIMIT = 50
 PUBLIC_DAILY_LIMIT = 30
 
@@ -95,7 +95,7 @@ def validate_current_vote(conn, token, is_certified, cid):
     except (TypeError, ValueError):
         return False, 500, "Invalid evaluation order"
     if access["unlocked_turns"] == 0:
-        return False, 403, "评审将于 2026 年 8 月 7 日开始"
+        return False, 403, "评审将于 2026 年 8 月 8 日开始"
 
     table = "certified_users" if is_certified else "public_users"
     row = conn.execute(f"SELECT current_turn FROM {table} WHERE token = ?", (token,)).fetchone()
@@ -320,37 +320,39 @@ def photo_score(cid):
         }
     })
 
-#查询总榜前三API
+# 查询总榜前三 API：认证评委均分占 2/3，公众评审均分占 1/3。
 @app.route("/api/v1/rank/main_top3", methods=["GET"])
 def get_main_top3():
     try:
         conn = sqlite3.connect('database.db')
         cursor = conn.cursor()
 
-        # 查询得分最高
+        # 使用均分而不是总分，避免评审人数多的一方天然占优势。
         cursor.execute("""
-            SELECT cid, total_score 
-            FROM photo_scores_public_users 
-            WHERE total_score IS NOT NULL
-            ORDER BY total_score DESC 
+            SELECT
+                uploads.cid,
+                uploads.path,
+                COALESCE(certified.total_score * 1.0 / NULLIF(certified.vote_count, 0), 0) AS certified_average,
+                COALESCE(public.total_score * 1.0 / NULLIF(public.vote_count, 0), 0) AS public_average
+            FROM uploads
+            LEFT JOIN photo_scores_certified_users AS certified ON certified.cid = uploads.cid
+            LEFT JOIN photo_scores_public_users AS public ON public.cid = uploads.cid
+            ORDER BY (COALESCE(certified.total_score * 1.0 / NULLIF(certified.vote_count, 0), 0) * 2.0 / 3.0
+                    + COALESCE(public.total_score * 1.0 / NULLIF(public.vote_count, 0), 0) * 1.0 / 3.0) DESC,
+                uploads.cid ASC
             LIMIT 3;
         """)
         results = cursor.fetchall()
 
         top3 = []
-        for row in results:
-            cid = row[0]
-            score = row[1]
-
-            # 查找 uploads 表中对应 cid 的图片路径
-            cursor.execute("SELECT path FROM uploads WHERE cid = ?", (cid,))
-            path_result = cursor.fetchone()
-            image_path = path_result[0] if path_result else ""
-
+        for cid, image_path, certified_average, public_average in results:
+            score = certified_average * (2 / 3) + public_average * (1 / 3)
             top3.append({
                 "image_url": f"/media/thumbnail/{image_path}",
-                "score": round(score, 2)
+                "score": round(score, 3)
             })
+
+        conn.close()
 
         return jsonify({
             "success": True,
@@ -365,38 +367,35 @@ def get_main_top3():
         })
 
 
-#查询YourLife榜单前三
+# 查询 YourLife 榜单前三：汇总认证评委和公众评审的推荐次数。
 @app.route("/api/v1/rank/yourlife_top3", methods=["GET"])
 def get_yourlife_top3():
     try:
         conn = sqlite3.connect('database.db')
         cursor = conn.cursor()
 
-        # 查询YourLife得分最高的前三张照片
+        # 每位评审对一张作品最多贡献一次推荐，因此直接合计次数。
         cursor.execute("""
-            SELECT cid, your_life 
-            FROM photo_scores_public_users 
-            WHERE your_life IS NOT NULL
-            ORDER BY your_life DESC 
+            SELECT
+                uploads.cid,
+                uploads.path,
+                COALESCE(certified.your_life, 0) + COALESCE(public.your_life, 0) AS recommendations
+            FROM uploads
+            LEFT JOIN photo_scores_certified_users AS certified ON certified.cid = uploads.cid
+            LEFT JOIN photo_scores_public_users AS public ON public.cid = uploads.cid
+            ORDER BY recommendations DESC, uploads.cid ASC
             LIMIT 3;
         """)
         results = cursor.fetchall()
 
         top3 = []
-        for row in results:
-            cid = row[0]
-            score = row[1]
-
-            # 查找 uploads 表中对应 cid 的图片路径
-            cursor.execute("SELECT path FROM uploads WHERE cid = ?", (cid,))
-            path_result = cursor.fetchone()
-            image_path = path_result[0] if path_result else ""
-
+        for cid, image_path, score in results:
             top3.append({
                 "image_url": f"/media/thumbnail/{image_path}",
-                "score": round(score, 2)
+                "score": int(score)
             })
 
+        conn.close()
 
         return jsonify({
             "success": True,
